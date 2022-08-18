@@ -12,4 +12,4 @@ def create_file_without_duplicates(path):
         
 #%% main
 
-create_file_without_duplicates(path)
+create_file_without_duplicates('C:\\Users\\PBL_Basia\\Documents\\My scripts\\web_scraping_repo\\pgajda_2022-08-18.xlsx')
