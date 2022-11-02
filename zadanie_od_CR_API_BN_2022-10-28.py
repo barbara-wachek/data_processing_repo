@@ -11,6 +11,7 @@
 #%% ROZWIĄZANIE
 import requests
 from pprint import pprint
+import pandas as pd
 
 
 author = 'Borges, Jorge Luis (1899-1986)'
@@ -25,13 +26,17 @@ all_bibs = data_01['bibs'] + data_02['bibs'] + data_03['bibs']
 
 # Drugie rozwiązanie: 
 
-data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'author': author, 'limit':100}).json()
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
 bibs = data['bibs']
 
 while data['nextPage'] != '':
-    data = requests.get(data['nextPage'], params = {'author': author, 'limit':100}).json()
+    data = requests.get(data['nextPage'], params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
     bibs = bibs + data['bibs']
 
+
+#pd_test = pd.DataFrame(bibs)
+pd_data = pd.json_normalize(bibs)
+pd_data.drop_duplicates
 
 
 
