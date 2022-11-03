@@ -10,7 +10,6 @@
 
 #%% ROZWIĄZANIE
 import requests
-from pprint import pprint
 import pandas as pd
 
 
@@ -30,7 +29,7 @@ data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {
 bibs = data['bibs']
 
 while data['nextPage'] != '':
-    data = requests.get(data['nextPage'], params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
+    data = requests.get(data['nextPage']).json()
     bibs = bibs + data['bibs']
 
 
