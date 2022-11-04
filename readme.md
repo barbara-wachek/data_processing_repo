@@ -12,3 +12,5 @@
   zapytanie do bazy dot. wszystkich świętych twórców PBL + utworzenie wordcloud według przyporzadkowanych im zapisów
 ### SQL_statystyki_PBL_wordcloud
   cykl półrocznych statystyk dot. czasopism opracowywanych przez bibliografów PBL; wordcloud według liczby zapisów z czasopism
+### zadanie_od_CR_API_BN_2022-10-28
+
