@@ -48,23 +48,107 @@ while data['nextPage'] != '':
 #Efekt w postaci DataFrame, który z tej listy 247 rekordó÷w robi tabele z 247 rekordami z MARC (tylko z pola MARC)
 #Mniej wiecej do takiej formy: https://docs.google.com/spreadsheets/d/1QMM1T0PFmcuQZLxhtM-qak6OXAsD39gYZdrgUNiqSUk/edit?pli=1#gid=0 #W pełni dynamiczna opcja
 
-#Ciąg dalszy - tabela
-# marc_list_of_bibs = []
-# marc_list_of_leader = []
-
-# for x in bibs:
-#     marc_list_of_bibs.append(x['marc']['fields'])
-#     marc_list_of_leader.append(x['marc']['leader'])
 
 
-# marc_list_of_bibs #Może przekonwertować to na jsona? I potem użyć json_normalize? Na końcu dodać kolumnę leader
+all_marc_series = []
+for element in bibs: 
+    marc_series = element['marc']
+    all_marc_series.append(marc_series)
+
+
+all_normalize_marc_series = []
+for record in all_marc_series:
+    normalize_record = pd.json_normalize(record, record_path=['fields'], sep='_')
+    all_normalize_marc_series.append(normalize_record)
+    
+    
+############ Kontynuować poniższy kod. Spróbować wyjąć dane z kolumny marc_fields    
+    
+bibs_norm = pd.json_normalize(bibs, sep='_', record_path='marc')    
+  
+bibs_norm_only_marc = bibs_norm.drop(columns=['id', 'zone', 'createdDate', 'updatedDate', 'deleted', 'deletedDate', 'language', 'subject', 'subjectPlace', 'subjectWork', 'subjectTime', 'author', 'placeOfPublication', 'location', 'title', 'udc', 'publisher', 'kind', 'domain', 'formOfWork', 'isbnIssn', 'genre', 'timePeriodOfCreation', 'audienceGroup', 'demographicGroup', 'nationalBibliographyNumber', 'publicationYear', 'languageOfOriginal' ])
+
+
+#bibs_norm_only_marc_norm = pd.json_normalize(bibs_norm_only_marc, record_path='marc_fields', sep='_')
+
+###################
+    
+# Given nested dictionary
+
+all_marc_series
+
+# Convert to data frame
+df = pd.DataFrame(rows)
+print(df)    
+    
+    
+    
+    
+json_marc = pd.json_normalize(all_marc_series, record_path=['fields'])
+
+json_marc_df = pd.DataFrame(json_marc)
+
+
+element = bibs[2]
+
+element_2 = bibs[5]
+
+all_marcs = []
+for element in bibs:
+    leader = element['marc']['leader']
+    fields = element['marc']['fields']
+    
+    marc = element['marc']
+    
+    marc_series = pd.Series(marc)
+    
+    
+
+    
+    
+    
+    
+
+    marc_2 = element_2['marc']
+    
+    marc_series_2 = pd.Series(marc_2)
+    
+    
+    test_df = pd.DataFrame([marc, marc_2])
+    
+    
+    
+    
+    leader_series = pd.Series(leader)
+    
+    
+    for field in fields: 
+        fields[0]
+        for k,v in field.items():
+            fields_series = pd.Series(fields[0])
+            test_df = pd.DataFrame([leader_series, fields_series])    
+    
+    
+    
+    
+    
+    
+    marc_df_leader = pd.DataFrame(element['marc'])
+    marc_dr_fields = pd.DataFrame(element['marc']['fields'])
+    
+    
+    
+    marc_df = pd.DataFrame(bibs['marc'])
+    all_marcs.append(marc_df)
+
+
 
 
 
 marc_list = []
 
 for x in bibs:
-    marc_list.append(x['marc'])
+    marc_list.append(x['marc'],)
 
 
 marc_normalize = pd.json_normalize(marc_list, sep=',') #Może później?
