@@ -19,7 +19,6 @@ import tqdm
 
 data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
 bibs = data['bibs']
-
 while data['nextPage'] != '':
     data = requests.get(data['nextPage']).json()
     bibs = bibs + data['bibs']
@@ -35,8 +34,18 @@ for element in bibs:
     marc_series = element['marc']
     all_marc_series.append(marc_series)
     
-dic_flattened = [flatten(d) for d in all_marc_series]    
+dic_flattened = [flatten(d) for d in all_marc_series]
+
 data_frame_marc = pd.DataFrame(dic_flattened)
+data_frame_marc_fields = pd.json_normalize(all_marc_series, record_path='fields', sep='_') #len(data_frame_marc.columns) chyba nie ma zduplikowanych kolumn! ale wyglada jakby był problem z wartociami w komórkach (duzo nan)
+data_frame_marc_leader = pd.json_normalize(all_marc_series)
+
+
+
+
+len(data_frame_marc.columns)
+#data_frame_marc_normalize = pd.json_normalize(data_frame_marc)
+
 data_frame_marc.rename(columns={'leader': 'LDR'}, inplace=True)
 
 #Ustawienie bardziej zrozumiałych nazw kolumn:
@@ -56,7 +65,7 @@ for x in data_frame_marc.columns:
         data_frame_marc.rename(columns={x: new_name}, inplace=True)
 
 
-column_list = data_frame_marc.columns #Do sprawdzenia nazw kolumn
+columns_list = data_frame_marc.columns #Do sprawdzenia nazw kolumn , nazwy kolumn się powtarzają - problem
 
      
 test_list = []
@@ -79,11 +88,12 @@ for column_name in data_frame_marc.columns:
             pass
             
  
+    
  #  ❦        
    
    
    
-#Dlaczego niektóre powtarzające się kolumny nie są obok siebie? 
+#Dlaczego niektóre powtarzające się kolumny nie są obok siebie? Jak je połączyć, żeby zachować wartosci, ale uzyskać finalnie jedną kolumnę 
 #Kolejny krok: połączyć kolumny o tych samych poczatkach nazw (trzy pierwsze cyfry)
 #Poprawić uzyćie znaczka ❦. Cos sie nie zgadza - moze to nie powinno byc dodane w tej funkcji, ale w kolejnej. BO teraz dodaje po porust w obrębie kolumny nie zwazajac na kontekst calego rekordu? (Np. 7 rekord pole subfields_35 w tabeli ) Prawdopodobnie trzeba bedzie wywalic ten znaczek z powyzszego kodu i dodac go dopiero po scaleniu kolumn (wtedy bedzie sprawdzenie czy dana komorka zawiera kilka $+liczba+litera - to znaczy, ze ma kilka tych samych podpól?)
 
