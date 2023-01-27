@@ -15,6 +15,8 @@ import json
 import re
 from flatten_json import flatten
 import tqdm
+from collections import ChainMap
+
 
 
 data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
@@ -34,21 +36,72 @@ for element in bibs:
     marc_series = element['marc']
     all_marc_series.append(marc_series)
     
-dic_flattened = [flatten(d) for d in all_marc_series]
 
+
+test = all_marc_series[0]
+#3 podejscia: leader, pola 001-009, pola 015 i wieksze
+#leader
+
+LDR = all_marc_series[0].get('leader')
+
+# pola 001-009
+fields_001_009 = all_marc_series[0].get('fields')
+
+fields_001_009 = [x for x in fields_001_009 if int(list(x.keys())[0]) in range(10)]
+
+#int(list(fields_001_009[4].keys())[0]) in range(10)
+fields_001_009 = dict(ChainMap(*fields_001_009))
+df = pd.DataFrame([fields_001_009])
+df['LDR'] = LDR
+
+
+#15 i wiecej
+#Dołączyc kolejne kolumny 
+
+
+
+
+
+#df = pd.json_normalize(dic_flattened)    
+#df.shape 
+
+
+#dic_flattened = [flatten(d) for d in all_marc_series]
 data_frame_marc = pd.DataFrame(dic_flattened)
-data_frame_marc_fields = pd.json_normalize(all_marc_series, record_path='fields', sep='_') #len(data_frame_marc.columns) chyba nie ma zduplikowanych kolumn! ale wyglada jakby był problem z wartociami w komórkach (duzo nan)
-data_frame_marc_leader = pd.json_normalize(all_marc_series)
-
-
-
+# data_frame_marc_fields = pd.json_normalize(all_marc_series, record_path='fields', sep='_') #len(data_frame_marc.columns) chyba nie ma zduplikowanych kolumn! ale wyglada jakby był problem z wartociami w komórkach (duzo nan)
+# data_frame_marc_leader = pd.json_normalize(all_marc_series)
 
 len(data_frame_marc.columns)
-#data_frame_marc_normalize = pd.json_normalize(data_frame_marc)
 
 data_frame_marc.rename(columns={'leader': 'LDR'}, inplace=True)
 
-#Ustawienie bardziej zrozumiałych nazw kolumn:
+
+
+#2023-01-27
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Ustawienie bardziej zrozumiałych nazw kolumn (pozbycie się słowa fields z początku nazwy kolumny i liczby porzadkowej)
 format_fields = r'(fields\_\d{1,2}\_)(\d{3})$'
 format_ind = r'(fields\_\d{1,3}\_)(\d{3}\_)(ind\d)'
 format_subfields = r'(fields\_\d{1,3}\_)(\d{3}\_)(subfields\_\d{1,2}\_\w)'
@@ -72,13 +125,13 @@ test_list = []
 for column_name in data_frame_marc.columns:
     if 'ind' in column_name:
         data_frame_marc[column_name] = data_frame_marc[column_name].replace(' ', '\\')
-        if column_name not in test_list: 
-            test_list.append(column_name)
+        # if column_name not in test_list: 
+        #     test_list.append(column_name)
         
     if 'subfields' in column_name: 
         number_and_letter_of_subfield = re.sub(r'(\d{3})(\_)(subfields)(\_)(\d{1,2})(\_)(\w)', r'\5\7', column_name)
-        if column_name not in test_list: #Jesli nazwy kolumny nie ma na liscie testowej tzn., ze pierwszy raz analizujemy kolumnę o takiej nazwie. Musimy dodać ją do listy testowej, a nastepnie mozemy podejsc do analizy: sprobowac dodac odpowiednie znaki na poczatku wartosci z poszczegolnych komorek tej kolumny. Jesli wyskoczy blad (AttributeError) oznacza to, ze mamy wiecej kolumn o tej samej nazwie, bo kod interpretuje to jako DataFrame. Wtedy dodajemy znaczek ❦ na koncu kazdej komorki z takich kolumn. Wazne tez, zeby po w kolejnej iteracji gdy probujemy analizowac kolejna kolumne o tej samej nazwie, zeby po prostu zostawiło ją - bo juz są na niej naniesione zmiany. 
-            test_list.append(column_name)
+        # if column_name not in test_list: #Jesli nazwy kolumny nie ma na liscie testowej tzn., ze pierwszy raz analizujemy kolumnę o takiej nazwie. Musimy dodać ją do listy testowej, a nastepnie mozemy podejsc do analizy: sprobowac dodac odpowiednie znaki na poczatku wartosci z poszczegolnych komorek tej kolumny. Jesli wyskoczy blad (AttributeError) oznacza to, ze mamy wiecej kolumn o tej samej nazwie, bo kod interpretuje to jako DataFrame. Wtedy dodajemy znaczek ❦ na koncu kazdej komorki z takich kolumn. Wazne tez, zeby po w kolejnej iteracji gdy probujemy analizowac kolejna kolumne o tej samej nazwie, zeby po prostu zostawiło ją - bo juz są na niej naniesione zmiany. 
+        #     test_list.append(column_name)
             try:
                 data_frame_marc[column_name] = data_frame_marc[column_name].str.replace(r'(^.*$)', r'$\1').str.replace(r'(\$)(.*)', r'\g<1>'+number_and_letter_of_subfield+r'\g<2>')
             except AttributeError:
