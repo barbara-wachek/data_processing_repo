@@ -12,6 +12,12 @@
 #Mniej wiecej do takiej formy: https://docs.google.com/spreadsheets/d/1QMM1T0PFmcuQZLxhtM-qak6OXAsD39gYZdrgUNiqSUk/edit?pli=1#gid=0 #W pełni dynamiczna opcja
 
 
+#2023-02-10
+#Wszystkie materialy, ktore tematyzuja Olge Tokarczuk (pole 600, subject). Sprawdz, czy działa z tym kodem
+#z tabeli stworzyc plik tekstowy (mrk - jest zapisany pulpicie)
+
+
+
 
 #%% ROZWIĄZANIE
 import requests
@@ -111,13 +117,19 @@ first_column = final_df.pop('LDR')
 final_df.insert(0, 'LDR', first_column)
 
 
-for column_name in list(final_df.columns):
-    if re.match(r'^(00)(\d)', column_name):
-        new_name = re.sub(r'^(00)(\d)', r'\2', column_name)
-        final_df.rename(columns={column_name: new_name}, inplace=True)
-    elif re.match(r'^(0)(\d)', column_name):
-        new_name = re.sub(r'^(0)(\d)', r'\2', column_name)
-        final_df.rename(columns={column_name: new_name}, inplace=True)
+final_df.to_excel('BN.xlsx', index=False, encoding='utf-8')   
+  
+
+
+
+#Niepotrzebne:
+# for column_name in list(final_df.columns):
+#     if re.match(r'^(00)(\d)', column_name):
+#         new_name = re.sub(r'^(00)(\d)', r'\2', column_name)
+#         final_df.rename(columns={column_name: new_name}, inplace=True)
+#     elif re.match(r'^(0)(\d)', column_name):
+#         new_name = re.sub(r'^(0)(\d)', r'\2', column_name)
+#         final_df.rename(columns={column_name: new_name}, inplace=True)
 
 
 
