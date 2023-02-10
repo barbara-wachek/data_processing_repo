@@ -13,8 +13,9 @@
 
 
 #2023-02-10
+
 #Wszystkie materialy, ktore tematyzuja Olge Tokarczuk (pole 600, subject). Sprawdz, czy działa z tym kodem
-#z tabeli stworzyc plik tekstowy (mrk - jest zapisany pulpicie)
+#Z tabeli stworzyc plik tekstowy (mrk - jest zapisany pulpicie)
 
 
 
@@ -26,7 +27,7 @@ import re
 from collections import ChainMap
 
 
-data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'author': 'Borges, Jorge Luis (1899-1986)', 'limit':100}).json()
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'subject': 'Tokarczuk Olga', 'limit':100}).json()
 bibs = data['bibs']
 while data['nextPage'] != '':
     data = requests.get(data['nextPage']).json()
@@ -37,21 +38,6 @@ for element in bibs:
     marc_series = element['marc']
     all_marc_series.append(marc_series)
     
-
-#3 podejscia: leader, pola 001-009, pola 015 i wieksze
-#leader
-
-# LDR = all_marc_series[0].get('leader')
-
-# # pola 001-009
-# fields = all_marc_series[0].get('fields')
-
-# fields_001_009 = [x for x in fields if int(list(x.keys())[0]) in range(10)]
-
-# #int(list(fields_001_009[4].keys())[0]) in range(10)
-# fields_001_009 = dict(ChainMap(*fields_001_009))
-# df = pd.DataFrame([fields_001_009])
-# df['LDR'] = LDR
 
 final_df = pd.DataFrame()
 
@@ -120,21 +106,16 @@ final_df.insert(0, 'LDR', first_column)
 final_df.to_excel('BN.xlsx', index=False, encoding='utf-8')   
   
 
-
-
-#Niepotrzebne:
-# for column_name in list(final_df.columns):
-#     if re.match(r'^(00)(\d)', column_name):
-#         new_name = re.sub(r'^(00)(\d)', r'\2', column_name)
-#         final_df.rename(columns={column_name: new_name}, inplace=True)
-#     elif re.match(r'^(0)(\d)', column_name):
-#         new_name = re.sub(r'^(0)(\d)', r'\2', column_name)
-#         final_df.rename(columns={column_name: new_name}, inplace=True)
+#Z tabeli stworzyć plik tekstowy w formacie MRC
 
 
 
+#txt_file ? czy od razu mrc file
+for index, row in final_df.iterrows():
 
 
+for i in range(len(df)):
+    print(df.iloc[i, 0], df.iloc[i, 2])
 
 
 
