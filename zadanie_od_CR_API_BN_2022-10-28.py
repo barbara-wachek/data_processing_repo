@@ -25,6 +25,7 @@ import requests
 import pandas as pd
 import re
 from collections import ChainMap
+import mrcfile
 
 
 data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'subject': 'Tokarczuk Olga', 'limit':100}).json()
@@ -110,12 +111,33 @@ final_df.to_excel('BN.xlsx', index=False, encoding='utf-8')
 
 
 
-#txt_file ? czy od razu mrc file
+    
+string_file = []  
 for index, row in final_df.iterrows():
+    for key, value in row.items():
+        if str(value) != 'nan' and '❦' not in str(value):  
+            #print(str(key) + '=' + '  ' + str(value) + '\n')     
+            string_file.append(str(key) + '=' + '  ' + str(value) + '\n')
+
+        elif '❦' in str(value):
+            while value.find('❦') != -1: 
+                slicing = value.find('❦')
+                #print(str(key) + '=' + '  ' + str(value[0:slicing] + '\n'))
+                string_file.append(str(key) + '=' + '  ' + str(value[0:slicing] + '\n'))
+                value = value[slicing+1:]
+    
+    string_file.append('  \n')            
+    join_list = ''.join(string_file)
+    #print('  ')
 
 
-for i in range(len(df)):
-    print(df.iloc[i, 0], df.iloc[i, 2])
+
+
+    
+    
+    # with mrcfile.new('BN_Tokarczuk.mrc') as mrc:
+    #     mrc.set_data([join_list])
+
 
 
 
