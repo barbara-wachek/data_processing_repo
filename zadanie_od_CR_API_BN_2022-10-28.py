@@ -17,7 +17,8 @@
 #Wszystkie materialy, ktore tematyzuja Olge Tokarczuk (pole 600, subject). Sprawdz, czy działa z tym kodem
 #Z tabeli stworzyc plik tekstowy (mrk - jest zapisany pulpicie)
 
-
+#2023-02-14
+#z pliku mrk zrobić tabelę - wgrać do Pythona mrk i DataFrame zrobić
 
 
 #%% ROZWIĄZANIE
@@ -25,7 +26,7 @@ import requests
 import pandas as pd
 import re
 from collections import ChainMap
-import mrcfile
+
 
 
 data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'subject': 'Tokarczuk Olga', 'limit':100}).json()
@@ -117,31 +118,32 @@ for index, row in final_df.iterrows():
     for key, value in row.items():
         if str(value) != 'nan' and '❦' not in str(value):  
             #print(str(key) + '=' + '  ' + str(value) + '\n')     
-            string_file.append(str(key) + '=' + '  ' + str(value) + '\n')
+            string_file.append('=' + str(key) + '  ' + str(value) + '\n')
 
         elif '❦' in str(value):
             while value.find('❦') != -1: 
                 slicing = value.find('❦')
                 #print(str(key) + '=' + '  ' + str(value[0:slicing] + '\n'))
-                string_file.append(str(key) + '=' + '  ' + str(value[0:slicing] + '\n'))
+                string_file.append('=' + str(key) + '  ' + str(value[0:slicing] + '\n'))
                 value = value[slicing+1:]
     
     string_file.append('  \n')            
     join_list = ''.join(string_file)
-    #print('  ')
 
 
+#join_list.count('LDR') #sprawdzenie, czy są wszystkie rekordy
+
+with open('Olga_Tokarczuk.mrk', 'w', encoding='utf-8') as f:
+    f.write(join_list)
 
 
-    
-    
-    # with mrcfile.new('BN_Tokarczuk.mrc') as mrc:
-    #     mrc.set_data([join_list])
+# Wgrać plik mrk do Pythona i zrobić z niego tabelę DataFrame    
+
+with open("C:\\Users\\PBL_Basia\\Documents\\My scripts\\data_processing_repo\\Olga_Tokarczuk.mrk") as file:
+    f.read()
 
 
-
-
-
+#df = pd.read_csv("C:\\Users\\PBL_Basia\\Documents\\My scripts\\data_processing_repo\\Olga_Tokarczuk.mrk")
 
 
 
