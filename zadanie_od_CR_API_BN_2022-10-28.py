@@ -132,65 +132,45 @@ with open('Olga_Tokarczuk.mrk', 'w', encoding='utf-8') as f:
     f.write(join_list)
 
 
-# Wgrać plik mrk do Pythona i zrobić z niego tabelę DataFrame    
 
-# with open("C:\\Users\\PBL_Basia\\Documents\\My scripts\\data_processing_repo\\Olga_Tokarczuk.mrk") as file:
-#     f.read()
+#%% Wgrać plik mrk do Pythona i zrobić z niego tabelę DataFrame    
 
-#UWAGA! Sciezka pliku zmienia sie w zaleznosci czy korzystam ze stacjonarki czy laptopa!
-# file = open("C:\\Users\\Barbara Wachek\\Desktop\\Olga_Tokarczuk.mrk", "r")
+# stacjonarka: "C:\\Users\\PBL_Basia\\Desktop\\Olga_Tokarczuk.mrk"
+# laptop: "C:\\Users\\Barbara Wachek\\Desktop\\Olga_Tokarczuk.mrk"
 
-
-
-
+#Utworzenie z każdego podpola słownika, w którym kluczem jest nazwa podpola. 
 list_of_marc_dicts = []
-with open("C:\\Users\\Barbara Wachek\\Desktop\\Olga_Tokarczuk.mrk", 'r', encoding='utf-8') as file: 
+with open("C:\\Users\\PBL_Basia\\Desktop\\Olga_Tokarczuk.mrk", 'r', encoding='utf-8') as file: 
     data = file.read()
     list_of_records = data.split('\n')
     
     for row in list_of_records:
+        #row = '=LDR  02888nam a2200697 i 4500'
+        #row = '=041  1\$ager$hpol'
         dictionary_of_field = {}
         if re.match(r'^\=\S{3}', row):
-            key = re.sub(r'(^\=)(\S{3})(\s{2})(.*)', r'\2', row)
-            value =  re.sub(r'(^\=)(\S{3})(\s{2})(.*)', r'\4', row)
+            key = re.sub(r'(\=)(\S{3})(\s{2})(.*)', r'\2', row).rstrip()
+            value =  re.sub(r'(\=)(\S{3})(\s{2})(.*)', r'\4', row).rstrip()
             
             dictionary_of_field[key] = value
             list_of_marc_dicts.append(dictionary_of_field)
 
-            
+
+#Stworzenie listy słowników poszczególnych rekordów, z uwzględnieniem '❦' dla powtarzających się podpól
+final_list = []
+for element in list_of_marc_dicts:
+    for key, value in element.items():
+        if key == 'LDR':
+            final_list.append(new_dict)
+            new_dict = element
+        elif key not in new_dict.keys(): 
+            new_dict[key] = value    
+        elif key in new_dict.keys(): 
+            new_dict[key] = new_dict[key] + '❦'  + value
+                
+new_df = pd.DataFrame(final_list)            
     
-    #df = pd.DataFrame()
-    final_list = []
-    for element in list_of_marc_dicts:
-        for key, value in element.items():
-            if key == 'LDR':
-                new_dict = {}
-                new_dict[key] = value
-            if key not in new_dict.keys(): 
-                new_dict[key] = value    
-            elif key in new_dict.keys(): 
-                new_dict[key] = new_dict[key] + '❦'  + value
-                
-                
-    final_list.append(new_dict)
-           
-   
-
-
-    # dictionary_of_record = {}
-    # for row in list_of_records_without_space:
-    #     if re.match(r'^\=\S{3}', row):
-    #         key = re.sub(r'(^\=)(\S{3})(\s{2})(.*)', r'\2', row)
-    #         value =  re.sub(r'(^\=)(\S{3})(\s{2})(.*)', r'\4', row)
-    #         if key not in  dictionary_of_record.keys():
-    #             dictionary_of_record[key] = value
-    #         else:
-    #             dictionary_of_record[key] = dictionary_of_record[key] + '❦' + value
-                
-    #         list_of_marc_records.append(dictionary_of_record) 
-    #     dictionary_of_record = {}
- 
-
+#new_df = new_df.drop_duplicates()
 
 
 
