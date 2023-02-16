@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from datetime import datetime
 
-#%% Połączenie z bazą Oracle
+
+#%% Połączenie z bazą Oracle (dostęp w pliku SQL_dostep)
 
 cx_Oracle.init_oracle_client(lib_dir=r"C:\Users\PBL_Basia\Desktop\SQL\sqldeveloper\instantclient_19_6")
-dsn_tns = cx_Oracle.makedsn('pbl.ibl.poznan.pl', '1521', service_name='xe')
-connection = cx_Oracle.connect(user='IBL_SELECT', password='CR333444', dsn=dsn_tns, encoding='windows-1250')
+dsn_tns = cx_Oracle.makedsn('XXXX', 'XXX', service_name='xe')
+connection = cx_Oracle.connect(user='XXXX', password='XXXXX', dsn=dsn_tns, encoding='windows-1250')
 
 #%% Zapytanie (podmieniać daty na odpowiednie)
 

@@ -2,15 +2,10 @@
 
 
 ### authors_rating_lubimy_czytac
-### create_new_file_without_duplicates
-  do nadpisywania plików KUP (bez duplikatów)
-### data_cleaning_for_web_scraping_websites
-  do usuwania duplikatów i uszeregowania rekordów w kolejności od najnowszego do najstarszego
 ### KUP
-  zapytanie do bazy danych i generowanie pliku
+  zapytanie do bazy danych PBL i generowanie pliku xlsx
 ### saints
-  zapytanie do bazy dot. wszystkich świętych twórców PBL + utworzenie wordcloud według przyporzadkowanych im zapisów
+  zapytanie do bazy PBL dot. wszystkich świętych twórców + utworzenie wordcloud według przyporzadkowanych im zapisów
 ### SQL_statystyki_PBL_wordcloud
   cykl półrocznych statystyk dot. czasopism opracowywanych przez bibliografów PBL; wordcloud według liczby zapisów z czasopism
 ### zadanie_od_CR_API_BN_2022-10-28
-
