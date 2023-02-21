@@ -13,7 +13,6 @@
 
 
 #2023-02-10
-
 #Wszystkie materialy, ktore tematyzuja Olge Tokarczuk (pole 600, subject). Sprawdz, czy działa z tym kodem
 #Z tabeli stworzyc plik tekstowy (mrk - jest zapisany pulpicie)
 
@@ -142,35 +141,33 @@ with open('Olga_Tokarczuk.mrk', 'w', encoding='utf-8') as f:
 list_of_marc_dicts = []
 with open("C:\\Users\\PBL_Basia\\Desktop\\Olga_Tokarczuk.mrk", 'r', encoding='utf-8') as file: 
     data = file.read()
-    list_of_records = data.split('\n')
     
-    for row in list_of_records:
-        #row = '=LDR  02888nam a2200697 i 4500'
-        #row = '=041  1\$ager$hpol'
-        dictionary_of_field = {}
-        if re.match(r'^\=\S{3}', row):
-            key = re.sub(r'(\=)(\S{3})(\s{2})(.*)', r'\2', row).rstrip()
-            value =  re.sub(r'(\=)(\S{3})(\s{2})(.*)', r'\4', row).rstrip()
-            
-            dictionary_of_field[key] = value
-            list_of_marc_dicts.append(dictionary_of_field)
+list_of_fields = data.split('\n')
+
+list_of_records = []
+dictionary_of_record = {}
+for field in list_of_fields: 
+    if field.startswith('='): 
+        dictionary_of_record[field[1:4]] = field[6:]
+    else:
+        list_of_records.append(dictionary_of_record)
+        dictionary_of_record = {}
+        
+new_df = pd.DataFrame(list_of_records)        
+        
+
+sorted_df = new_df.reindex(sorted(new_df.columns), axis=1)
+first_column = sorted_df.pop('LDR')
+sorted_df.insert(0, 'LDR', first_column)
 
 
-#Stworzenie listy słowników poszczególnych rekordów, z uwzględnieniem '❦' dla powtarzających się podpól
-final_list = []
-for element in list_of_marc_dicts:
-    for key, value in element.items():
-        if key == 'LDR':
-            final_list.append(new_dict)
-            new_dict = element
-        elif key not in new_dict.keys(): 
-            new_dict[key] = value    
-        elif key in new_dict.keys(): 
-            new_dict[key] = new_dict[key] + '❦'  + value
-                
-new_df = pd.DataFrame(final_list)            
-    
-#new_df = new_df.drop_duplicates()
+
+
+
+
+
+
+
 
 
 
