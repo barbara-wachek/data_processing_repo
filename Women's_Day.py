@@ -118,7 +118,6 @@ for x in women_dictionary['data']:
 
 custom_cmap_PBL = matplotlib.colors.ListedColormap(['#50504f', '#5f6062', '#87745e', '#968a7e', '#f3b65a'])
 
-
 wordcloud = WordCloud(colormap=custom_cmap_PBL, max_font_size=800, width=1080, height=1080, prefer_horizontal=1, min_font_size=6, background_color='white', collocations=False).generate_from_frequencies(new_dict)
 
 plt.figure(figsize=[100,100])
