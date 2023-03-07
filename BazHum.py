@@ -104,17 +104,21 @@ with open("C:\\Users\\PBL_Basia\\Desktop\\BazHum – czasopisma do pozyskania - 
 df_positive_decisions = df[df['Decyzja'].isna()]
 df_positive_decisions['Plik PDF'] = np.nan
 
+test_df = df_positive_decisions[500:600]
+
+
 
 # df_positive_decisions_links = df_positive_decisions['PDF']
 
+#list_of_files_paths = []
 
-
-list_of_files_paths = []
-
-for link in tqdm(df_positive_decisions['PDF']):
-    # link = 'http://bazhum.muzhp.pl/media//files/Teksty_teoria_literatury_krytyka_interpretacja/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121.pdf'
+def create_list_of_files_paths(link):
+    
+#for link in tqdm(test_df['PDF']):
+    #link = 'http://bazhum.muzhp.pl/media//files/Teksty_teoria_literatury_krytyka_interpretacja/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121.pdf'
     #link = 'http://bazhum.muzhp.pl/media//files/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1-s303-315/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1-s303-315.pdf'
-  
+    #link = 'http://bazhum.muzhp.pl/media//files/Collectanea_Philologica/Collectanea_Philologica-r1999-t3/Collectanea_Philologica-r1999-t3-s155-159/Collectanea_Philologica-r1999-t3-s155-159.pdf'
+    
     format_name = re.sub(r'(http\:\/\/bazhum\.muzhp\.pl\/media\/\/files\/)(.*\/)(.*)(\.pdf$)', r'\3', link)
     file_path = f'C:\\Users\\PBL_Basia\\Documents\\My scripts\\BazHum_PDF-y\\{format_name}.pdf'
     
@@ -124,11 +128,14 @@ for link in tqdm(df_positive_decisions['PDF']):
     
     list_of_files_paths.append(file_path)
  
-    
- 
-    
+#MAIN
+list_of_files_paths = []
+with ThreadPoolExecutor() as excecutor:
+    list(tqdm(excecutor.map(create_list_of_files_paths, test_df['PDF']), total=len(test_df)))
+  
+
+
 dict_of_drive_links = {}   
-    
 gauth = GoogleAuth()           
 drive = GoogleDrive(gauth)   
   
@@ -141,43 +148,54 @@ for upload_file in upload_file_list:
     drive_link = gfile.metadata['alternateLink']
     dict_of_drive_links[format_name] = drive_link
 
-
-
-
-# upload_file = file_path
-# gfile = drive.CreateFile({'parents': [{'id': '1NgarB8afK-v7J9LjJORjegmd8-7Dw99w'}], 'title': format_name})  
-# gfile.SetContentFile(upload_file)
-# gfile.Upload()  
-
-# drive_link = gfile.metadata['alternateLink']
-
-
     
 
-      
-upload_file_list = list_of_files_paths
-for upload_file in upload_file_list:
-	gfile = drive.CreateFile({'parents': [{'id': '19t1szTXTCczteiKfF2ukYsuiWpDqyo8f'}]})  
-	gfile.SetContentFile(upload_file)
-	gfile.Upload()  
-
-    
-
-#Uzupełnienie danych w df
+#Uzupełnienie danych w df, aby dodac do poczatkowego dataframe'u linki do pdfów na dysku
 
 for k,v in dict_of_drive_links.items():
-    df_positive_decisions[df_positive_decisions[]]  #jesli = link to PDF link = drive_link
+    # k = 'Collectanea_Philologica-r1995-t1-s119-130.pdf'
+    # v = 'https://drive.google.com/file/d/1ciFJ0ljohRL-GSdr0y5asxud-xEECIXA/view?usp=drivesdk'
+    #df_positive_decisions.loc[df_positive_decisions['PDF'].str.contains(k, na=False), 'Plik PDF'] = v
+    test_df.loc[test_df['PDF'].str.contains(k, na=False), 'Plik PDF'] = v
+    
+      
 
 
 
-# filename = Path(f'{link}.pdf')
-# link = 'http://bazhum.muzhp.pl/media//files/Teksty_teoria_literatury_krytyka_interpretacja/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121.pdf'
-# response = requests.get(link)
-# filename.write_bytes(response.content)
+#Usun z finalnego DF kolumnę Unnamed: 6
+   
+
+
+
+
 
 
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     
     
