@@ -95,8 +95,11 @@ with pd.ExcelWriter(f"BazHum.xlsx", engine='xlsxwriter', options={'strings_to_ur
 #%% Pobranie pdfów z linków, gdzie decyzja jest TAK (puste pole)
    
 #Link = 'https://docs.google.com/spreadsheets/d/1ZN5UdQwla4lLvyXZk_2Ug-PAWUrcarEmT0nqSTwdy5Y/edit#gid=66593903'
+path_laptop = 'BazHum – czasopisma do pozyskania - web scraping'
+path_desktop = "C:\\Users\\PBL_Basia\\Desktop\\BazHum – czasopisma do pozyskania - web scraping.csv"
 
-with open("C:\\Users\\PBL_Basia\\Desktop\\BazHum – czasopisma do pozyskania - web scraping.csv", 'r', encoding='utf-8') as file:
+
+with open("C:\\Users\\Barbara Wachek\\Desktop\\BazHum – czasopisma do pozyskania - web scraping.csv", 'r', encoding='utf-8') as file:
     df = pd.read_csv(file) 
     
 #df.shape
@@ -107,20 +110,18 @@ df_positive_decisions['Plik PDF'] = np.nan
 test_df = df_positive_decisions[500:600]
 
 
-
-# df_positive_decisions_links = df_positive_decisions['PDF']
-
-#list_of_files_paths = []
+list_of_files_paths = []
 
 def create_list_of_files_paths(link):
     
 #for link in tqdm(test_df['PDF']):
-    #link = 'http://bazhum.muzhp.pl/media//files/Teksty_teoria_literatury_krytyka_interpretacja/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121.pdf'
+    link = 'http://bazhum.muzhp.pl/media//files/Teksty_teoria_literatury_krytyka_interpretacja/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121/Teksty_teoria_literatury_krytyka_interpretacja-r1981-t-n6_(60)-s105-121.pdf'
     #link = 'http://bazhum.muzhp.pl/media//files/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1-s303-315/Acta_Universitatis_Lodziensis_Folia_Litteraria_Polonica-r2005-t7-n1-s303-315.pdf'
     #link = 'http://bazhum.muzhp.pl/media//files/Collectanea_Philologica/Collectanea_Philologica-r1999-t3/Collectanea_Philologica-r1999-t3-s155-159/Collectanea_Philologica-r1999-t3-s155-159.pdf'
     
     format_name = re.sub(r'(http\:\/\/bazhum\.muzhp\.pl\/media\/\/files\/)(.*\/)(.*)(\.pdf$)', r'\3', link)
-    file_path = f'C:\\Users\\PBL_Basia\\Documents\\My scripts\\BazHum_PDF-y\\{format_name}.pdf'
+    #file_path = f'C:\\Users\\PBL_Basia\\Documents\\My scripts\\BazHum_PDF-y\\{format_name}.pdf' #desktop
+    file_path = f"C:\\Users\\Barbara Wachek\\Documents\\Python Scripts\\BazHum\\{format_name}.pdf" #laptop
     
     filename = Path(file_path)
     response = requests.get(link)
@@ -128,10 +129,12 @@ def create_list_of_files_paths(link):
     
     list_of_files_paths.append(file_path)
  
+    
+ 
 #MAIN
-list_of_files_paths = []
-with ThreadPoolExecutor() as excecutor:
-    list(tqdm(excecutor.map(create_list_of_files_paths, test_df['PDF']), total=len(test_df)))
+# list_of_files_paths = []
+# with ThreadPoolExecutor() as excecutor:
+#     list(tqdm(excecutor.map(create_list_of_files_paths, test_df['PDF']), total=len(test_df)))
   
 
 
