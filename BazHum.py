@@ -95,7 +95,7 @@ with pd.ExcelWriter(f"BazHum.xlsx", engine='xlsxwriter', options={'strings_to_ur
 #%% Pobranie pdfów z linków, gdzie decyzja jest TAK (puste pole)
    
 #Link = 'https://docs.google.com/spreadsheets/d/1ZN5UdQwla4lLvyXZk_2Ug-PAWUrcarEmT0nqSTwdy5Y/edit#gid=66593903'
-path_laptop = 'BazHum – czasopisma do pozyskania - web scraping'
+path_laptop = "C:\\Users\\Barbara Wachek\\Desktop\\BazHum – czasopisma do pozyskania - web scraping.csv"
 path_desktop = "C:\\Users\\PBL_Basia\\Desktop\\BazHum – czasopisma do pozyskania - web scraping.csv"
 
 
