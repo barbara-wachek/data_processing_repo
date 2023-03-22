@@ -5,8 +5,8 @@
 ### authors_rating_lubimy_czytac
 ### BazHum
   Skrypt do utworzenia tabeli z artykułami z BazHum wraz z linkami do plików PDF
-  Część 1: pobieranie informacji o artykułach z BazHum na podstawie linków do tomów/numerów i utworzenie tabeli
-  Część 2: po manualnym uzupełnieniu tabeli (kolumna Decyzja) pobranie tabeli i uzupełnienie poszczegolnych artykułów o linki do pobranych plików PDF (zebranych na dysku Google)
+  #### Część 1: pobieranie informacji o artykułach z BazHum na podstawie linków do tomów/numerów i utworzenie tabeli
+  #### Część 2: po manualnym uzupełnieniu tabeli (kolumna Decyzja) pobranie tabeli i uzupełnienie poszczegolnych artykułów o linki do pobranych plików PDF (zebranych na dysku Google)
 ### KUP
   zapytanie do bazy danych PBL i generowanie pliku xlsx
 ### saints
