@@ -72,6 +72,61 @@ def check_file_exists(file_path):
         return False
 
 
+
+# def split_dataframe(df, min_rows=180, max_rows=220):
+#     """Dzieli DataFrame na mniejsze DataFrame'y o określonej liczbie wierszy.
+    
+#     Args:
+#       df: DataFrame do podziału.
+#       min_rows: Minimalna liczba wierszy w każdym podziale (domyślnie 180).
+#       max_rows: Maksymalna liczba wierszy w każdym podziale (domyślnie 220).
+    
+#     Returns:
+#       Lista podzielonych DataFrame'ów.
+#     """
+    
+#     result = []
+#     start_index = 0
+#     end_index = min_rows
+    
+#     if len(df) < min_rows:
+#         print("Ostrzeżenie: DataFrame jest za mały, aby go podzielić.")
+#         return [df]
+    
+#     while end_index <= len(df):
+#         chunk = df[start_index:end_index]
+#         result.append(chunk)
+#         start_index = end_index
+#         end_index = min(end_index + min_rows, len(df))
+    
+#     return result
+
+
+# def save_dataframes_to_excel(dataframes, user_pbl, output_dir="data", file_format=".xlsx"):
+#     """
+#     Zapisuje listę DataFrame'ów lub pojedynczy DataFrame do osobnych plików Excel.
+
+#     Args:
+#         dataframes: Lista DataFrame'ów lub pojedynczy DataFrame.
+#         output_dir: Katalog, w którym mają być zapisane pliki.
+#         user_pbl: Prefiks nazwy pliku.
+#         file_format: Rozszerzenie pliku (domyślnie .xlsx).
+#     """
+
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     if not isinstance(dataframes, list):
+#         dataframes = [dataframes]
+
+#     for i, df in enumerate(dataframes):
+#         file_name = f"{output_dir}/{user_pbl}_{datetime.date.today().strftime('%Y-%m-%d')}_{i+1}{file_format}"
+#         df.to_excel(file_name, index=False)
+
+
+
+
+
+
 #%% QUERY Zla kolejnosc, gdzie to dac?
 
 query = f'''
@@ -109,10 +164,14 @@ if __name__ == "__main__":
             used_id_list = existing_df['ID'].tolist()
             final_df = df[~df['ID'].isin(used_id_list)]
             
-            #Zapisz do pliku dataframe ze wszystkimi niewykorzystanymi dotychczas rekordami:
-            with pd.ExcelWriter(f"data\\{user_pbl}_{date_end}.ods", engine='odf') as writer:
-                final_df.to_excel(writer, index=False, encoding='utf-8')
-                writer.save()
+            # result = split_dataframe(final_df)  #lista dataframów lub 1 dataframe jesli jest mniej niz 180 zapisow i nie da podzielic
+            # save_dataframes_to_excel(result)
+            
+            # Zapisz do pliku dataframe ze wszystkimi niewykorzystanymi dotychczas rekordami (zamień potem na format ods)
+            with pd.ExcelWriter(f"data\\{user_pbl}_{datetime.date.today().strftime('%Y-%m-%d')}.xlsx", engine='xlsxwriter') as writer:
+                final_df.to_excel(writer, index=False)
+                writer.close()
+            
             
             # Utwórz nową ramkę danych z nowymi ID
             final_df_only_ID = pd.DataFrame({'ID': final_df['ID'].tolist()})
