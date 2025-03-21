@@ -163,9 +163,24 @@ sorted_df.insert(0, 'LDR', first_column)
 
 
 
+#%% Dla Karoliny 2025-03-21
 
 
 
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'genre': 'Czasopismo literackie', 'kind': 'czasopismo', 'placeOfPublication': 'Polska', 'limit':100}).json()
+
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+all_marc_series = []
+for element in bibs: 
+    marc_series = element['marc']
+    all_marc_series.append(marc_series)
+    
+
+final_df = pd.DataFrame()
 
 
 
