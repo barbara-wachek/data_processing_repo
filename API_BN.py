@@ -164,23 +164,82 @@ sorted_df.insert(0, 'LDR', first_column)
 
 
 #%% Dla Karoliny 2025-03-21
+### Prosba: Czy potrafisz wyciągać dane z bazy BN? Potrzebna mi będzie do nowego referatu tabela z polskimi czasopismami literackimi, które odnotowuje BN. Poza podstawowymi informacjami jak tytuł, podtytuł, wydawca/instytucja sprawcza, miejsce wydania ważne będą daty publikacja (w jakich latach się ukazywało - dla nieistniejących / od kiedy się ukazuje - dla aktualnie wychodzących). Chodzi tylko o czasopisma, które w polu Gatunek mają Czasopismo literackie. Dasz radę cos takiego przygotować?
+#Przykłady:
+#Elewator: https://katalogi.bn.org.pl/discovery/fulldisplay?docid=alma991013120739705066&context=L&vid=48OMNIS_NLOP:48OMNIS_NLOP&lang=pl&search_scope=NLOP_IZ_NZ&adaptor=Local%20Search%20Engine&tab=LibraryCatalog&query=any,contains,elewator&sortby=date_d&facet=frbrgroupid,include,9011996902311126997&offset=0
+#Latarnia Morska: https://katalogi.bn.org.pl/discovery/fulldisplay?docid=alma991030789889705066&context=L&vid=48OMNIS_NLOP:48OMNIS_NLOP&lang=pl&search_scope=MyInstitution1&adaptor=Local%20Search%20Engine&tab=BN&query=any,contains,latarnia%20morska&facet=lds04,include,Czasopisma&offset=0
 
 
+import requests
+import pandas as pd
+import re
+from collections import ChainMap
 
-data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'genre': 'Czasopismo literackie', 'kind': 'czasopismo', 'placeOfPublication': 'Polska', 'limit':100}).json()
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'genre': 'Czasopismo literackie', 'kind': 'czasopismo', 'limit':100}).json()
 
 bibs = data['bibs']
 while data['nextPage'] != '':
     data = requests.get(data['nextPage']).json()
     bibs = bibs + data['bibs']
 
-all_marc_series = []
+all_records = []
 for element in bibs: 
-    marc_series = element['marc']
-    all_marc_series.append(marc_series)
+    all_records.append(element)
+
+
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
+    dictionary_of_records = {'Tytuł': element['title'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Autor': element['author'], 
+                             'Czas': element['timePeriodOfCreation']
+                             }
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+final_df['Rok_koncowy'] = final_df['Czas'].str.split(' - ').str[1]
+
+final_df['Rok_koncowy'] = pd.to_numeric(final_df['Rok_koncowy'], errors='coerce')
+
+# Jeśli chcesz uzupełnić NaN, np. wartością 0 (lub inną, np. 1945), robimy to:
+final_df['Rok_koncowy'] = final_df['Rok_koncowy'].fillna(0).astype(int)
+
+
+# Filtruj dane, uwzględniając tylko rekordy, w których rok zakończenia jest >= 1945
+df_filtered = final_df[(final_df['Język'].str.contains('polski', case=False, na=False)) & ((final_df['Rok_koncowy'] >= 1945) | (final_df['Rok_koncowy'] == 0))]
+
+
+df_deleted = final_df[~(final_df['Język'].str.contains('polski', case=False, na=False) & ((final_df['Rok_koncowy'] >= 1945) | (final_df['Rok_koncowy'] == 0)))]
+
+df_filtered = final_df[final_df['Język'].str.contains('polski', case=False, na=False)]
+
+
+#uwzględnić tylko te ktore w jezyk maja polski
+
+df_filtered.to_excel('data/Czasopisma_dla_KP_2025-03-24.xlsx', index=False)  
+
+
+
+
+# all_marc_series = []
+# for element in bibs: 
+#     marc_series = element['marc']
+#     all_marc_series.append(marc_series)
+
+
+
     
 
-final_df = pd.DataFrame()
+
 
 
 
