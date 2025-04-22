@@ -237,10 +237,134 @@ df_filtered.to_excel('data/Czasopisma_dla_KP_2025-03-24.xlsx', index=False)
 
 
 
+ #%% Dla Karoliny 2025-04-22
+ #Konferencja o Reymoncie
+ #Reymont podmiotowa
+ 
+import requests
+import pandas as pd
+import re
+from collections import ChainMap
+
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'kind': 'książka', 'author': 'Reymont, Władysław Stanisław', 'limit':100}).json()
+
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+all_records = []
+for element in bibs: 
+    all_records.append(element)
+
+#podmiotowa
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
     
+    author = next((subfield['a'] for field in element['marc']['fields'] for key, value in field.items() if key == '100' for subfield in value['subfields'] if 'a' in subfield), None)
+
+
+    dictionary_of_records = {'Autor': author if author else element.get('author', None),
+                             'Tytuł': element['title'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Rok': element['publicationYear']
+                             }
+    
+    # dictionary_of_records = {'Autor': author,
+    #                          'Tytuł': element['title'],
+    #                          'Wydawca': element['publisher'],
+    #                          'Miejsce wydania': element['placeOfPublication'],
+    #                          'Język': element['language'], 
+    #                          'Typ': element['kind'], 
+    #                          'Gatunek': element['genre'], 
+    #                          'Forma': element['formOfWork'], 
+    #                          'Rok': element['publicationYear']
+    #                          }
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+
+# Filtrowanie. Rekordy od 1925 roku 
+
+final_df['Rok'] = pd.to_numeric(final_df['Rok'], errors='coerce')
+df_filtered = final_df[(final_df['Rok'] >= 1925) | (final_df['Rok'] == 0)]
+
+df_filtered = df_filtered.sort_values(by='Rok', ascending=True)
+df_filtered = df_filtered.drop_duplicate()
 
 
 
+# df_deleted = final_df[~(final_df['Język'].str.contains('polski', case=False, na=False) & ((final_df['Rok_koncowy'] >= 1945) | (final_df['Rok_koncowy'] == 0)))]
+# df_filtered = final_df[final_df['Język'].str.contains('polski', case=False, na=False)]
+
+
+#uwzględnić tylko te ktore w jezyk maja polski
+df_filtered.to_excel('data/KP_Reymont_podmiotowa_2025-04-22.xlsx', index=False)  
+
+
+
+
+# all_marc_series = []
+# for element in bibs: 
+#     marc_series = element['marc']
+#     all_marc_series.append(marc_series)
+
+
+#%% Reymont przedmiotowa
+
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'kind': 'książka', 'subject': 'Reymont, Władysław Stanisław', 'limit':100}).json()
+
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+all_records = []
+for element in bibs: 
+    all_records.append(element)
+
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
+    
+    author = next((subfield['a'] for field in element['marc']['fields'] for key, value in field.items() if key == '100' for subfield in value['subfields'] if 'a' in subfield), None)
+
+
+    dictionary_of_records = {'Autor': author if author else element.get('author', None),
+                             'Tytuł': element['title'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Rok': element['publicationYear'],
+                             'ISBN/ISSN': element['isbnIssn']
+                             }
+
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+
+# Filtrowanie. Rekordy od 1925 roku 
+final_df['Rok'] = pd.to_numeric(final_df['Rok'], errors='coerce')
+df_filtered = final_df[(final_df['Rok'] >= 1925) | (final_df['Rok'] == 0)]
+
+df_filtered = df_filtered.sort_values(by='Rok', ascending=True)
+
+df_filtered.to_excel('data/KP_Reymont_przedmiotowa_2025-04-22.xlsx', index=False)  
 
 
 
