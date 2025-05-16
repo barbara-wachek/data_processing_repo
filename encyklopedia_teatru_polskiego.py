@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
 from concurrent.futures import ThreadPoolExecutor
-
+import requests
 
 
 import pandas as pd
@@ -131,6 +131,158 @@ all_results = []
 with ThreadPoolExecutor() as excecutor:
     list(tqdm(excecutor.map(dictionary_of_art, art_links),total=len(art_links)))
     
+
+   
+#%% Poprawiona wersja (pobieranie wszystkich sztuk autora ze strony: 'https://encyklopediateatru.pl/osoby/51809/wladyslaw-reymont')  
+
+
+
+#Poszczególne sztuki mogą miec kilka różnych wystawień scenicznych:
+    
+
+def get_spectacles_links(art_link): 
+    # art_link = 'https://encyklopediateatru.pl/sztuki/22244/bunt'
+    # art_link = 'https://encyklopediateatru.pl/sztuki/3618/noc-wigilijna'
+    
+    html_text = requests.get(art_link).text
+
+    while 'Error 503' in html_text:
+        time.sleep(2)
+        html_text = requests.get(art_link).text
+    
+    soup = BeautifulSoup(html_text, 'lxml')
+    
+    try:
+        links = ['https://encyklopediateatru.pl' + x.get('href') for x in soup.find('ul',class_='list').find_all('a') if re.search(r'\/przedstawienie\/.*', x.get('href'))]
+    except AttributeError:
+        links = []
+        
+    return spektakle.extend(links)
+
+
+
+def dictionary_of_art(spektakl_link):
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/2480/jesien'
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59654/fermenty-odcinek-3'
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59657/fermenty-odcinek-6'
+    
+    html_text = requests.get(spektakl_link).text
+
+    while 'Error 503' in html_text:
+        time.sleep(2)
+        html_text = requests.get(spektakl_link).text
+    
+    soup = BeautifulSoup(html_text, 'lxml')
+    
+    # Inicjalizacja słownika wynikowego
+    results = {}
+    
+    results["Link"] = spektakl_link  
+    
+    # Pobieranie autora
+    try:
+        author = soup.find('h2', class_='authors').text.strip()
+    except:
+        author = None
+    results["Autor"] = author
+    
+    # Pobieranie tytułu
+    try:
+        title_of_art = soup.find('h3').text.strip()
+    except:
+        title_of_art = None
+        
+    results["Tytuł"] = title_of_art
+    
+    # Parsowanie sekcji grupowych
+    groups = soup.find_all('div', class_=lambda x: x and x.startswith('dl-group'))
+    
+    for group in groups:
+        group_title_h5 = group.find('h5', class_='dl-group-title')
+        group_data = []
+    
+        # Sprawdzenie, czy mamy do czynienia z Obsada
+        if group_title_h5 and 'Obsada' in group_title_h5.get_text(strip=True):
+            obsada_text = []
+    
+            for dl in group.find_all('dl'):
+                dt = dl.find('dt')
+                dds = dl.find_all('dd')
+    
+                value = None
+                for dd in dds:
+                    text = dd.get_text(strip=True)
+                    if text:
+                        value = text
+                        break
+    
+                if dt and value is not None:
+                    label = dt.get_text(strip=True)
+                    obsada_text.append(f"{label}: {value}")
+    
+            results['Obsada'] = " | ".join(obsada_text)
+    
+        else:
+            for dl in group.find_all('dl'):
+                dt = dl.find('dt')
+                dds = dl.find_all('dd')
+    
+                value = None
+                for dd in dds:
+                    text = dd.get_text(strip=True)
+                    if text:
+                        value = text
+                        break
+    
+                if dt and value is not None:
+                    label = dt.get_text(strip=True)
+                    group_data.append({label: value})
+    
+            if group_title_h5:
+                title = group_title_h5.get_text(strip=True)
+                if title in results:
+                    results[title].extend(group_data)
+                else:
+                    results[title] = group_data
+            else:
+                for item in group_data:
+                    results.update(item)
+        
+    all_results.append(results)
+        
+#%% main
+driver = webdriver.Chrome()
+driver.get("https://encyklopediateatru.pl/osoby/51809/wladyslaw-reymont")
+
+# Poczekaj na załadowanie danych
+time.sleep(5)
+
+# Pobierz źródło strony
+soup = BeautifulSoup(driver.page_source, "html.parser")
+
+target_table = None
+for table in soup.find_all('table'):
+    if table.find('h3', id='connected-plays'):
+        target_table = table
+        break
+   
+art_links = [['https://encyklopediateatru.pl' + e.get('href') for e in x.find_all('a')] for x in target_table.find_all('tbody')]
+all_art_links = art_links[0] + art_links[1]
+
+
+driver.quit()    
+
+#Wszystkie spektakle (linki) na podstawie utworów Reymonta: 
+    
+spektakle = []        
+with ThreadPoolExecutor() as excecutor:
+    list(tqdm(excecutor.map(get_spectacles_links, all_art_links),total=len(all_art_links)))      
+
+all_results = []        
+with ThreadPoolExecutor() as excecutor:
+    list(tqdm(excecutor.map(dictionary_of_art, spektakle),total=len(spektakle)))      
+
+        
 #Stworzenie DataFrame    
 df = pd.DataFrame(all_results)
 df['premiera'] = df['premiera'].str.replace(r'\s+', ' ', regex=True).str.strip()    
@@ -171,16 +323,25 @@ df = df.fillna('brak')
    
 with pd.ExcelWriter(f"data/KP_Reymont_ETP_{datetime.today().date()}.xlsx", engine='xlsxwriter') as writer:    
     df.to_excel(writer, 'Posts', index=False)   
-   
-
-
-   
-   
-   
-   
-   
-   
-   
-   
+           
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+       
    
    
