@@ -368,10 +368,118 @@ df_filtered.to_excel('data/KP_Reymont_przedmiotowa_2025-04-22.xlsx', index=False
 
 
 
+#%% 2025-06-23 Dla KP
+# Będę potrzebowała Waszej pomocy przy zrobieniu wstępnej listy czasopism naukowych do opracowania w nowym grancie NPRH. Lista czasopism ma być aneksem do wniosku.
+# Będę potrzebowała danych z 2 źródeł: Biblioteki Narodowej i kartoteki źródeł PBL. 
+# 1. BN
+# Chciałabym, abyście wyciągnęli z BN czasopisma, które w gatunku mają 2 kombinacje deskryptorów:
+# a) czasopisma filologiczne + czasopisma naukowe + czasopisma polskie 
+# b) czasopisma literackie + czasopisma naukowe + czasopisma polskie
+# Przy czym czasopismo, które mnie interesuje może mieć w sumie więcej niż 3 deskryptory. Widziałam kombinacje np. czasopisma filologiczne + czasopisma naukowe + czasopisma polskie + czasopismo elektroniczne.
+
+# 2. PBL
+# Tu potrzebne są czasopisma, które w kartotece źródeł w polu Rodzaj w jakimkolwiek roczniku mają zn - Zeszyty naukowe, ale z racji tego, że rodzaje są wymieszane z częstotliwością i zn nie jest stosowane konsekwentnie to chciałabym, aby ta lista została dopełniona czasopismami, które w tytułach mają:
+# a) Acta Universitatis (na początku tytułu)
+# b) Colloquia (na początku tytułu)
+# c) Prace Naukowe (na początku tytułu)
+# d) Studia (na początku tytułu)
+# e) Studies (na początku tytułu)
+# f) Zeszyty Naukowe (na początku tytułu)
+# g) Polonistyczn (jako którykolwiek z kolei wyraz w tytule czasopisma)
+# h) Filologiczn (jako którykolwiek z kolei wyraz w tytule czasopisma)
+
+# W przypadku BN i PBL interesują nas czasopisma, które ukazywały się w latach 2000-2025, czyli mogły zacząć ukazywać się wcześniej i ukazują się nadal w tym 25-leciu (lub w jego trakcie przestały istnieć) lub mogły się zacząć ukazywać po 2000, ale w 25-lciu, które nas interesuje wyszły jakieś numery. 
+# Interesuje mnie zidentyfikowanie tych czasopism, więc 1 wers = 1 tytuł czasopisma + w innej kolumnie lata ukazywanie się, jeśli uda Wam się wydobyć te dane.
+# Wyobrażam sobie tak, że to mogą być 2 tabele/arkusze, które posłużą mi do dalszej pracy i skonstruowania ostatecznej listy, więc dane wygenerowane z BN i PBL nie muszą być w 100% dobre i czasopism może być w nich za dużo. Zakładam, że będę tworzyć aneks do wniosku na zasadzie eliminacji.
+
+import requests
+import pandas as pd
+import re
+from collections import ChainMap
+
+#Najpierw wyjmuję z BN wszystkie czasopisma, które mają genre = Czasopismo polskie
+params = [
+    ('genre', 'Czasopisma polskie'),
+    ('genre', 'Czasopismo polskie'),
+    ('kind', 'czasopismo'),
+    ('limit', 100)
+]
+
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params=params).json()
+
+#4658 (tylko Czasopisma polskie)
+#77708
+
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+all_records = []
+for element in bibs: 
+    all_records.append(element)
+
+
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
+    dictionary_of_records = {'Tytuł': element['title'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Autor': element['author'], 
+                             'Czas': element['timePeriodOfCreation']
+                             }
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+final_df['Rok_koncowy'] = final_df['Czas'].str.split(' - ').str[1]
+
+final_df['Rok_koncowy'] = pd.to_numeric(final_df['Rok_koncowy'], errors='coerce')
+
+# Jeśli chcesz uzupełnić NaN, np. wartością 0 (lub inną, np. 1945), robimy to:
+final_df['Rok_koncowy'] = final_df['Rok_koncowy'].fillna(0).astype(int)
+
+final_df_unique = final_df.drop_duplicates() #77417
+kolumny = final_df_unique.columns
+
+# czasopisma filologiczne + czasopisma naukowe + czasopisma polskie 
+df_filtered_1 = final_df[(final_df['Gatunek'].str.contains('polskie', case=False, na=False)) & (final_df['Gatunek'].str.contains('filologiczne', case=False, na=False)) & final_df['Gatunek'].str.contains('naukowe', case=False, na=False)]
+
+#czasopisma literackie + czasopisma naukowe + czasopisma polskie
+
+df_filtered_2 = final_df[(final_df['Gatunek'].str.contains('polskie', case=False, na=False)) & (final_df['Gatunek'].str.contains('literackie', case=False, na=False)) & final_df['Gatunek'].str.contains('naukowe', case=False, na=False)]
+
+
+df_combined = pd.concat([df_filtered_1, df_filtered_2]).drop_duplicates() 
+
+
+#Wyeliminowanie czasopism, ktore przestały ukazywac sie przed 2000
+
+df_combined_2000 = df_combined[(df_combined['Rok_koncowy'] >= 2000) | (df_combined['Rok_koncowy'] == 0)]
 
 
 
-            
+
+#uwzględnić tylko te ktore w jezyk maja polski
+
+df_combined_2000.to_excel('data/NPRH2025_czasopisma_dla_KP_2025-06-23.xlsx', index=False)  
+
+
+
+
+# all_marc_series = []
+# for element in bibs: 
+#     marc_series = element['marc']
+#     all_marc_series.append(marc_series)
+
+          
 
      
 
