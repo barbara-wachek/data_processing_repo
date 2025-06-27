@@ -18,8 +18,9 @@ import json
 
    
 #%%Poszczególne sztuki (utwory) mogą miec kilka różnych wystawień scenicznych:
-    
 
+    
+#Wydobycie linkow do spektakli na podstawie linkow to sztuk (utworow)
 def get_spectacles_links(art_link): 
     # art_link = 'https://encyklopediateatru.pl/sztuki/22244/bunt'
     # art_link = 'https://encyklopediateatru.pl/sztuki/3618/noc-wigilijna'
@@ -39,12 +40,39 @@ def get_spectacles_links(art_link):
         
     return spektakle.extend(links)
 
+def subpages_links(main_link): 
+    html_text = requests.get(main_link).text
 
+    while 'Error 503' in html_text:
+        time.sleep(2)
+        html_text = requests.get(main_link).text
+    
+    soup = BeautifulSoup(html_text, 'lxml')
+    
+    subpages_links = ['https://encyklopediateatru.pl' + x.get('href') for x in soup.find('ul', class_='index-alphabet').find_all('a') if x.get('href') != None]
+    
+    return subpages_links
+
+
+#Pozyskanie linkow do spektakli Teatru Polskiego Radia na podstawie linków do podstron
+def teatr_polskiego_radia_links(link):
+    html_text = requests.get(link).text
+
+    while 'Error 503' in html_text:
+        time.sleep(2)
+        html_text = requests.get(link).text
+    
+    soup = BeautifulSoup(html_text, 'lxml')
+    
+    spectacles_links = ['https://encyklopediateatru.pl' + x.get('href') for x in soup.find_all('a') if x.get('href') and re.match(r'^/przedstawienie', x.get('href'))]
+    all_teatr_polskiego_radia.extend(spectacles_links)
+    
+    return all_teatr_polskiego_radia
+                    
 
 def dictionary_of_art(spektakl_link):
-    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/2480/jesien'
-    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59654/fermenty-odcinek-3'
-    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59657/fermenty-odcinek-6'
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59851/acheron-w-samo-poludnie'
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/56148/c-jak-cisna-opowiesc-na-piec-glosow'
     
     html_text = requests.get(spektakl_link).text
 
@@ -197,6 +225,23 @@ data_premiery = df.pop('Data premiery')
 df['Data premiery'] = data_premiery
 df = df.fillna('brak')
     
+
+
+#%%main 2025-06-27 Wydobycie wszystkich słuchowisk Teatru Polskiego Radia
+
+subpages_links = subpages_links('https://encyklopediateatru.pl/teatr-polskiego-radia')
+
+all_teatr_polskiego_radia = []
+
+with ThreadPoolExecutor() as excecutor:
+    list(tqdm(excecutor.map(teatr_polskiego_radia_links, subpages_links),total=len(subpages_links)))
+   
+
+
+
+
+
+
 
 #%% saving
 
