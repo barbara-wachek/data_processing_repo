@@ -40,6 +40,12 @@ def get_spectacles_links(art_link):
         
     return spektakle.extend(links)
 
+
+
+
+    
+    
+#Wydobycie wszystkich stron (stronicowanie) dla Teatru Polskiego Radia
 def subpages_links(main_link): 
     html_text = requests.get(main_link).text
 
@@ -68,11 +74,12 @@ def teatr_polskiego_radia_links(link):
     all_teatr_polskiego_radia.extend(spectacles_links)
     
     return all_teatr_polskiego_radia
-                    
+
 
 def dictionary_of_art(spektakl_link):
     # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/59851/acheron-w-samo-poludnie'
     # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/56148/c-jak-cisna-opowiesc-na-piec-glosow'
+    # spektakl_link = 'https://encyklopediateatru.pl/przedstawienie/51931/30-lutego' #radio
     
     html_text = requests.get(spektakl_link).text
 
@@ -121,12 +128,15 @@ def dictionary_of_art(spektakl_link):
                 for dd in dds:
                     text = dd.get_text(strip=True)
                     if text:
-                        value = text
+                        value = text.replace("\n", "")
                         break
     
                 if dt and value is not None:
                     label = dt.get_text(strip=True)
-                    obsada_text.append(f"{label}: {value}")
+                    if label != '':
+                        obsada_text.append(f"{label}: {value}")
+                    else:
+                        obsada_text.append(f"Brak roli : {value}")
     
             results['Obsada'] = " | ".join(obsada_text)
     
@@ -157,8 +167,9 @@ def dictionary_of_art(spektakl_link):
                     results.update(item)
         
     all_results.append(results)
+                       
         
-#%% main
+#%% main (Reymont)
 driver = webdriver.Chrome()
 driver.get("https://encyklopediateatru.pl/osoby/51809/wladyslaw-reymont")
 
@@ -237,16 +248,55 @@ with ThreadPoolExecutor() as excecutor:
     list(tqdm(excecutor.map(teatr_polskiego_radia_links, subpages_links),total=len(subpages_links)))
    
 
+all_results = []
+with ThreadPoolExecutor() as excecutor:
+    list(tqdm(excecutor.map(dictionary_of_art, all_teatr_polskiego_radia),total=len(all_teatr_polskiego_radia)))
+
+ 
+df = pd.DataFrame(all_results)
+
+#czyszczenie DF
+df['premiera'] = df['premiera'].str.replace(r'\s+', ' ', regex=True).str.strip()    
+
+# Rozdzielenie daty i teatru
+df[['Data surowa', 'Teatr']] = df['premiera'].str.extract(r'^(\d{1,2} \w+ \d{4})\s*(.+)$')
+
+# Mapowanie miesięcy na liczby
+miesiace = {
+    'stycznia': '01', 'lutego': '02', 'marca': '03', 'kwietnia': '04',
+    'maja': '05', 'czerwca': '06', 'lipca': '07', 'sierpnia': '08',
+    'września': '09', 'października': '10', 'listopada': '11', 'grudnia': '12'
+}
+
+# Funkcja konwertująca datę na ISO format
+def convert_date(date_str):
+    try:
+        day, month_word, year = date_str.split()
+        month = miesiace.get(month_word.lower())
+        return f"{year}-{month}-{int(day):02d}"
+    except:
+        return None
+
+# Krok 5: Stwórz nową kolumnę z datą w formacie ISO
+df['Data premiery'] = df['Data surowa'].apply(convert_date)
+
+# Krok 6: Usuń kolumny pomocnicze
+df.drop(columns=['premiera', 'Data surowa'], inplace=True)
+
+# Krok 7: Opcjonalnie przesuń kolumnę 'Data premiery' na koniec
+data_premiery = df.pop('Data premiery')
+df['Data premiery'] = data_premiery
+df = df.fillna('brak')
+
+df = df.replace("brak", None)
 
 
-
-
-
+df_sample = df.head(300)
 
 #%% saving
 
    
-with pd.ExcelWriter(f"data/KP_Reymont_ETP_{datetime.today().date()}.xlsx", engine='xlsxwriter') as writer:    
+with pd.ExcelWriter(f"data/Teatr_Polskiego_Radia_dla_KP_{datetime.today().date()}.xlsx", engine='xlsxwriter') as writer:    
     df.to_excel(writer, 'Posts', index=False)   
            
         
