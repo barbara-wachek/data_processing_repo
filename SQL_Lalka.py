@@ -6,8 +6,6 @@ from data import SQL_access as sq #passy
 
 import json
 
-
-
 import networkx as nx
 import matplotlib.pyplot as plt
 from pyvis.network import Network
@@ -15,91 +13,103 @@ from pyvis.network import Network
 
 #%% Połączenie z bazą Oracle (dostęp w pliku SQL_dostep)
 
-cx_Oracle.init_oracle_client(lib_dir=sq.LIB_DIR)
+
+#%% ORACLE
+try:
+    cx_Oracle.init_oracle_client(
+        lib_dir=r"C:\Users\PBL_Basia\Desktop\SQL\sqldeveloper\instantclient_19_6"
+    )
+except cx_Oracle.ProgrammingError:
+    pass  # już zainicjalizowany
+
+
 dsn_tns = cx_Oracle.makedsn(sq.HOSTNAME, sq.PORT, service_name=sq.SERVICE_NAME)
-connection = cx_Oracle.connect(user=sq.USER, password=sq.PASSWORD, dsn=dsn_tns, encoding=sq.ENCODING)
+connection = cx_Oracle.connect(
+    user=sq.USER, 
+    password=sq.PASSWORD, 
+    dsn=dsn_tns, 
+    encoding=sq.ENCODING
+    )
 
 cursor = connection.cursor()
 
+
+
+#%% Functions
+
+def get_child_records(ids, connection):
+    """Zwraca ID rekordów potomnych (jednego poziomu niżej)."""
+    if not ids:
+        return []
+    ids_str = ', '.join(map(str, ids))
+    query = f"""
+        SELECT za_zapis_id
+        FROM IBL_OWNER.pbl_zapisy
+        WHERE za_za_zapis_id IN ({ids_str})
+    """
+    df = pd.read_sql(query, con=connection)
+    return df['ZA_ZAPIS_ID'].tolist()
+
+
+def get_full_records(ids, connection):
+    """Ściąga pełne rekordy dla listy ID (dzieli na paczki po 999 ze względu na limit Oracle)."""
+    if not ids:
+        return pd.DataFrame()
+
+    chunks = [ids[i:i+999] for i in range(0, len(ids), 999)]
+    dfs = []
+
+    for chunk in chunks:
+        ids_str = ', '.join(map(str, chunk))
+        query = f"""
+            SELECT z.za_zapis_id, 
+                   z.za_za_zapis_id AS zapis_nadrzedny, 
+                   z.za_type, 
+                   z.za_tytul, 
+                   tw.tw_imie, 
+                   tw.tw_nazwisko,
+                   tw.tw_tworca_id, 
+                   d.dz_nazwa, 
+                   t.am_imie, 
+                   t.am_nazwisko, 
+                   t.am_autor_id,
+                   zr.zr_tytul,
+                   zr.zr_zrodlo_id,
+                   z.za_zrodlo_rok, 
+                   z.za_zrodlo_nr, 
+                   z.za_zrodlo_str,
+                   z.za_seria_wydawnicza,  
+                   z.za_opis_wspoltworcow,
+                   z.za_wydawnictwa,
+                   w.wy_nazwa,
+                   w.wy_wydawnictwo_id,
+                   w.wy_miasto,
+                   z.za_rok_wydania,
+                   z.za_opis_fizyczny_ksiazki,
+                   z.za_adnotacje,
+                   z.za_opis_imprezy,
+                   z.za_organizator
+            FROM IBL_OWNER.pbl_zapisy z
+            LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a ON z.za_zapis_id = a.zaam_za_zapis_id
+            LEFT JOIN IBL_OWNER.pbl_autorzy t ON a.zaam_am_autor_id = t.am_autor_id
+            LEFT JOIN IBL_OWNER.pbl_zapisy_tworcy ztw ON ztw.zatw_za_zapis_id = z.za_zapis_id
+            LEFT JOIN IBL_OWNER.pbl_zrodla zr ON z.za_zr_zrodlo_id = zr.zr_zrodlo_id
+            LEFT JOIN IBL_OWNER.pbl_tworcy tw ON tw.tw_tworca_id = ztw.zatw_tw_tworca_id
+            LEFT JOIN IBL_OWNER.pbl_dzialy d ON z.za_dz_dzial1_id = d.dz_dzial_id  
+            LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd ON zwyd.zawy_za_zapis_id = z.za_zapis_id
+            LEFT JOIN IBL_OWNER.pbl_wydawnictwa w ON w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
+            WHERE z.za_zapis_id IN ({ids_str})
+        """
+        dfs.append(pd.read_sql(query, con=connection))
+
+    return pd.concat(dfs, ignore_index=True).drop_duplicates()
+
 #%% Odnalezienie rekordów przyporządkowanych pod utwór Lalka (id = 109715)
-
-query= '''
-SELECT z.za_zapis_id
-FROM IBL_OWNER.pbl_zapisy z
-WHERE z.za_za_zapis_id LIKE '109715'
-'''
-
-# cursor.execute(query)
-
-df = pd.read_sql(query, con=connection)
-id_records_attached_lalka = df['ZA_ZAPIS_ID'].tolist() #93 rekordy
-
+id_records_attached_lalka = get_child_records([109715], connection) #93 rekordy podpięte pod Lalkę
 
 #%% Sprawdzenie, czy którys z zapisów wydobytów do id_list ma jakies zapisy - czyli szukamy zagniezdzonych zapisow podpiętych pod który z tych ID
 
-id_records_attached_lalka_str = ', '.join(map(str, id_records_attached_lalka))
-
-query_2 = f'''
-SELECT z.za_zapis_id
-FROM IBL_OWNER.pbl_zapisy z
-WHERE z.za_za_zapis_id IN ({id_records_attached_lalka_str})
-'''
-
-# cursor.execute(query_2)
-
-df_2 = pd.read_sql(query_2, con=connection)
-id_records_attached_lalka_one_level_below = df_2['ZA_ZAPIS_ID'].tolist() # 22 rekordy podpięte pod zapisy podpięte pod Lalkę (np. recenzje ksiazek o Lalce)
-
-
-#%% Teraz chce z dwóch list otrzymac pełne rekordy bibliograficzne 
-
-full_list_of_ids = id_records_attached_lalka + id_records_attached_lalka_one_level_below
-
-full_list_of_ids_str = ', '.join(map(str, full_list_of_ids))
-
-query_full_list = f'''
-SELECT z.za_zapis_id, 
-z.za_za_zapis_id AS zapis_nadrzedny, 
-z.za_type, 
-z.za_tytul, 
-tw.tw_imie, 
-tw.tw_nazwisko,
-tw.tw_tworca_id, 
-d.dz_nazwa, 
-t.am_imie, 
-t.am_nazwisko, 
-t.am_autor_id,
-zr.zr_tytul,
-zr.zr_zrodlo_id,
-z.za_zrodlo_rok, 
-z.za_zrodlo_nr, 
-z.za_zrodlo_str,
-z.za_seria_wydawnicza,  
-z.za_opis_wspoltworcow,
-z.za_wydawnictwa,
-w.wy_nazwa,
-w.wy_wydawnictwo_id,
-w.wy_miasto,
-z.za_rok_wydania,
-z.za_opis_fizyczny_ksiazki,
-Z.ZA_ADNOTACJE,
-Z.ZA_OPIS_IMPREZY,
-Z.ZA_ORGANIZATOR
-FROM IBL_OWNER.pbl_zapisy z
-LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
-left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
-left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
-left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
-LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
-LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
-WHERE z.za_zapis_id IN ({full_list_of_ids_str})
-'''
-
-# cursor.execute(query_full_list)
-
-df_full_list = pd.read_sql(query_full_list, con=connection)
+id_records_attached_lalka_one_level_below = get_child_records(id_records_attached_lalka, connection) # 22 rekordy podpięte pod rekordy podpiete pod Lalkę (zagniezdzenie)
 
 
 #%% Wyszukanie ID wszystkich zapisów podpiętych pod Prusa jako twórcę 
@@ -123,146 +133,27 @@ WHERE
 ORDER BY z.za_zapis_id
 '''
 
-# cursor.execute(query_Prus_records)
 
 df_Prus = pd.read_sql(query_Prus_records, con=connection)
 id_list_records_Prus = df_Prus['ZA_ZAPIS_ID'].tolist() #777 rekordów
 
-# result = cursor.fetchall()  # to będzie lista tupli: [(id1,), (id2,), (id3,)]
-# id_list_records_Prus = [row[0] for row in result] # 776 rekordów pod Prusem jako twórcą i Prus jako autor. 
+id_list_nested_records_Prus = get_child_records(id_list_records_Prus, connection) #258 rekordów
 
-#%% Sprawdzenie, czy którys z zapisów wydobytów do id_list_records_Prus_tworca ma jakies zapisy - czyli szukamy zagniezdzonych zapisow podpiętych pod który z tych ID
-
-id_list_records_Prus_str = ', '.join(map(str, id_list_records_Prus))
-
-query_nested_Prus_records = f'''
-SELECT z.za_zapis_id
-FROM IBL_OWNER.pbl_zapisy z
-WHERE z.za_za_zapis_id IN ({id_list_records_Prus_str})
-'''
-
-cursor.execute(query_nested_Prus_records)
-
-result_nested_records = cursor.fetchall()
-
-id_list_nested_records_Prus = [row[0] for row in result_nested_records]
+id_list_nested_records_Prus_one_level_below = get_child_records(id_list_nested_records_Prus, connection) # 26 rekordów
 
 
-#%% DF z rekordów pod PRusem, Prusem jako autorem + rekordy, które są pod nie podpięte
+#%% Połączenie wszystkich 4 list z ID w jedną i stworzoenie z niej DataFrame
 
+full_list_ids = id_records_attached_lalka + id_records_attached_lalka_one_level_below + id_list_records_Prus + id_list_nested_records_Prus + id_list_nested_records_Prus_one_level_below
 
-full_list_of_Prus_records = id_list_records_Prus + id_list_nested_records_Prus #1035
-
-if len(full_list_of_Prus_records) > 1000: 
-    full_list_of_Prus_records_part_1 = full_list_of_Prus_records[:998]
-    full_list_of_Prus_records_part_2 = full_list_of_Prus_records[998:]
-
-full_list_of_Prus_records_part_1_str = ', '.join(map(str, full_list_of_Prus_records_part_1))
-
-full_list_of_Prus_records_part_2_str = ', '.join(map(str, full_list_of_Prus_records_part_2))
-
-
-query_full_list_of_Prus_records_part_1 = f'''
-SELECT z.za_zapis_id, 
-z.za_za_zapis_id AS zapis_nadrzedny, 
-z.za_type, 
-z.za_tytul, 
-tw.tw_imie, 
-tw.tw_nazwisko,
-tw.tw_tworca_id, 
-d.dz_nazwa, 
-t.am_imie, 
-t.am_nazwisko, 
-t.am_autor_id,
-zr.zr_tytul,
-zr.zr_zrodlo_id,
-z.za_zrodlo_rok, 
-z.za_zrodlo_nr, 
-z.za_zrodlo_str,
-z.za_seria_wydawnicza,  
-z.za_opis_wspoltworcow,
-z.za_wydawnictwa,
-w.wy_nazwa,
-w.wy_wydawnictwo_id,
-w.wy_miasto,
-z.za_rok_wydania,
-z.za_opis_fizyczny_ksiazki,
-Z.ZA_ADNOTACJE,
-Z.ZA_OPIS_IMPREZY,
-Z.ZA_ORGANIZATOR
-FROM IBL_OWNER.pbl_zapisy z
-LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
-left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
-left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
-left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
-LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
-LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
-WHERE z.za_zapis_id IN ({full_list_of_Prus_records_part_1_str})
-'''
-
-# cursor.execute(query_full_list_of_Prus_records_part_1)
-
-df_ora_Prus_records_part_1 = pd.read_sql(query_full_list_of_Prus_records_part_1, con=connection)
-
-
-
-query_full_list_of_Prus_records_part_2 = f'''
-SELECT z.za_zapis_id, 
-z.za_za_zapis_id AS zapis_nadrzedny, 
-z.za_type, 
-z.za_tytul, 
-tw.tw_imie, 
-tw.tw_nazwisko,
-tw.tw_tworca_id, 
-d.dz_nazwa, 
-t.am_imie, 
-t.am_nazwisko, 
-t.am_autor_id,
-zr.zr_tytul,
-zr.zr_zrodlo_id,
-z.za_zrodlo_rok, 
-z.za_zrodlo_nr, 
-z.za_zrodlo_str,
-z.za_seria_wydawnicza,  
-z.za_opis_wspoltworcow,
-z.za_wydawnictwa,
-w.wy_nazwa,
-w.wy_wydawnictwo_id,
-w.wy_miasto,
-z.za_rok_wydania,
-z.za_opis_fizyczny_ksiazki,
-Z.ZA_ADNOTACJE,
-Z.ZA_OPIS_IMPREZY,
-Z.ZA_ORGANIZATOR
-FROM IBL_OWNER.pbl_zapisy z
-LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
-left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
-left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
-left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
-LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
-LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
-WHERE z.za_zapis_id IN ({full_list_of_Prus_records_part_2_str})
-'''
-
-# cursor.execute(query_full_list_of_Prus_records_part_2)
-
-df_ora_Prus_records_part_2 = pd.read_sql(query_full_list_of_Prus_records_part_2, con=connection)
-
-
-
-
-df_Prus_records_all = pd.concat([df_ora_Prus_records_part_1, df_ora_Prus_records_part_2], ignore_index=True).drop_duplicates() #840 rekordów
+df = get_full_records(full_list_ids, connection)
 
 
 #Czyszczenie tabelki: 1) usuniecie wierszy ktore w polu DZ_NAZWA mają -- do ustalenia -- 
 
-df_Prus_records_all_clean = df_Prus_records_all.drop(df_Prus_records_all[df_Prus_records_all['DZ_NAZWA'] == "-- do ustalenia --"].index) #mniej o okolo 60 rekordow
+df_clean = df.drop(df[df['DZ_NAZWA'] == "-- do ustalenia --"].index) #mniej o okolo 60 rekordow
 
-df_Prus_records_all_clean['ZAPIS_NADRZEDNY'] = df_Prus_records_all_clean['ZAPIS_NADRZEDNY'].astype('Int64')
+df_clean['ZAPIS_NADRZEDNY'] = df_clean['ZAPIS_NADRZEDNY'].astype('Int64')
 
 
 
