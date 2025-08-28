@@ -9,6 +9,7 @@ import json
 import networkx as nx
 import matplotlib.pyplot as plt
 from pyvis.network import Network
+from ipysigma import Sigma
 
 
 #%% Połączenie z bazą Oracle (dostęp w pliku SQL_dostep)
@@ -267,6 +268,11 @@ df_final = pd.concat([df_full_list, df_Prus_records_all_clean, df_merged_Prus_in
 #Dodać jeszcze Filmy i Seriale!
 
 #%%
+#Dowalic wiecej danych do grafu i przetestowac. 
+
+
+
+
 
 
 #Przeksztalcanie finalnego DF na json (dostosowany troche do KG)
@@ -362,25 +368,25 @@ with open(f"data\Prus_for_KG.json", "w", encoding="utf-8") as f:
 
 #%% Testowe od NW: 
     
-
+#użyć ipysigma
 
 
 books_lst = [
   {
     "title": "W pustyni i w puszczy",
-    "author": {'id': 1,
+    "author": {'id': '1',
                'name': "Henryk Sienkiewicz"},
     "place": "Warszawa"
   },
   {
     "title": "Quo Vadis",
-    "author": {'id': 1,
+    "author": {'id': '1',
                'name': "Henryk Sienkiewicz"},
     "place": "Warszawa"
   },
   {
     "title": "Lalka",
-    "author": {'id': 2,
+    "author": {'id': '2',
                'name': "Bolesław Prus"},
     "place": "Warszawa"
   }
@@ -409,43 +415,61 @@ for book in books_lst:
 
 
 # (Opcjonalnie) rysowanie grafu
-pos = nx.spring_layout(G)
-colors = [ 
-    'red' if G.nodes[n]['type'] == 'book' 
-    else 'green' if G.nodes[n]['type'] == 'author' 
-    else 'blue' 
-    for n in G.nodes
-]
-nx.draw(G, pos, with_labels=False, node_color=colors) # with_labels=False nie wyświetlamy domyślnych labeli
-# tworzymy zestaw labeli dal krawędzi
-edge_labels = nx.get_edge_attributes(G, 'relation')
-nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-# tworzymy zestaw labeli dal węzłów
-node_labels = {node: G.nodes[node]['label'] for node in G.nodes}
-nx.draw_networkx_labels(G, pos, labels=node_labels)
-plt.show()
+# pos = nx.spring_layout(G)
+# colors = [ 
+#     'red' if G.nodes[n]['type'] == 'book' 
+#     else 'green' if G.nodes[n]['type'] == 'author' 
+#     else 'blue' 
+#     for n in G.nodes
+# ]
+# nx.draw(G, pos, with_labels=False, node_color=colors) # with_labels=False nie wyświetlamy domyślnych labeli
+# # tworzymy zestaw labeli dal krawędzi
+# edge_labels = nx.get_edge_attributes(G, 'relation')
+# nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+# # tworzymy zestaw labeli dal węzłów
+# node_labels = {node: G.nodes[node]['label'] for node in G.nodes}
+# nx.draw_networkx_labels(G, pos, labels=node_labels)
+# plt.show()
 
 
 
 
 # eksport html
 
-# Tworzymy obiekt PyVis i konwertujemy graf
-net = Network(notebook=False, height="600px", width="100%", bgcolor="#ffffff", font_color="black")
-net.from_nx(G)
+# Tworzymy obiekt PyVis i konwertujemy graf / jednak ipysigma 
+# net = Network(notebook=False, height="600px", width="100%", bgcolor="#ffffff", font_color="black")
+# net.from_nx(G)
 
-# Dodajemy etykiety z atrybutów (np. name)
-for node_id in net.nodes:
-    data = G.nodes[node_id['id']]
-    node_id['label'] = data.get('name', str(node_id['id']))
-    node_id['title'] = str(data)
+# # Dodajemy etykiety z atrybutów (np. name)
+# for node_id in net.nodes:
+#     data = G.nodes[node_id['id']]
+#     node_id['label'] = data.get('name', str(node_id['id']))
+#     node_id['title'] = str(data)
 
-# Zapis do pliku HTML
-net.show("graph.html", notebook=False)  # otworzy się w przeglądarc
+# # Zapis do pliku HTML
+# net.show("graph.html", notebook=False)  # otworzy się w przeglądarc
 
 
 #https://pyvis.readthedocs.io/en/latest/tutorial.html#example-visualizing-a-game-of-thrones-character-network
 
+
+# ✅ Eksport do HTML
+#Trzeba zaimportować z ipysigma obiekt sigma
+Sigma.write_html(
+    G,
+    'data/lalka.html', #output
+    fullscreen=True,
+    # node_metrics=['louvain'], #algorytm klastrowania obiektów w grafie
+    node_color='louvain',
+    node_size='degree',
+    node_size_range=(3, 20),
+    max_categorical_colors=30,
+    default_edge_type='curve',
+    default_node_label_size=14,
+    node_border_color_from='node'
+)
+
+#https://colab.research.google.com/drive/1ckrXLbEAAuB-_Celmb1depwzB5Ho1gLs?usp=sharing
 
 
 
