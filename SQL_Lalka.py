@@ -12,8 +12,6 @@ from pyvis.network import Network
 from ipysigma import Sigma
 
 
-#%% Połączenie z bazą Oracle (dostęp w pliku SQL_dostep)
-
 
 #%% ORACLE
 try:
@@ -143,9 +141,24 @@ id_list_nested_records_Prus = get_child_records(id_list_records_Prus, connection
 id_list_nested_records_Prus_one_level_below = get_child_records(id_list_nested_records_Prus, connection) # 26 rekordów
 
 
+#%%Zapytanie dotyczace rekordow podpietych pod film i serial Lalka, ID: 304249, 136679 
+id_records_movie_and_series = [304249, 136679]
+
+id_records_movie_and_series_nested = get_child_records([304249, 136679], connection) 
+
+
+
+
+
+
+
+
+
+
+
 #%% Połączenie wszystkich 4 list z ID w jedną i stworzoenie z niej DataFrame
 
-full_list_ids = id_records_attached_lalka + id_records_attached_lalka_one_level_below + id_list_records_Prus + id_list_nested_records_Prus + id_list_nested_records_Prus_one_level_below
+full_list_ids = id_records_attached_lalka + id_records_attached_lalka_one_level_below + id_list_records_Prus + id_list_nested_records_Prus + id_list_nested_records_Prus_one_level_below + id_records_movie_and_series + id_records_movie_and_series_nested
 
 df = get_full_records(full_list_ids, connection)
 
@@ -158,120 +171,116 @@ df_clean['ZAPIS_NADRZEDNY'] = df_clean['ZAPIS_NADRZEDNY'].astype('Int64')
 
 
 
+
+
+
+
 #%% Prus wspomniany w polu adnotacja (zastanowic sie czy to jest potrzebne) + Prus w polu Nazwisko w tabeli PBL_OSOBY_DO_INDEKSU
 
-query_records_with_Prus_in_note = f'''
-SELECT z.za_zapis_id, 
-z.za_za_zapis_id AS zapis_nadrzedny, 
-z.za_type, 
-z.za_tytul, 
-tw.tw_imie, 
-tw.tw_nazwisko,
-tw.tw_tworca_id, 
-d.dz_nazwa, 
-t.am_imie, 
-t.am_nazwisko, 
-t.am_autor_id,
-zr.zr_tytul,
-zr.zr_zrodlo_id,
-z.za_zrodlo_rok, 
-z.za_zrodlo_nr, 
-z.za_zrodlo_str,
-z.za_seria_wydawnicza,  
-z.za_opis_wspoltworcow,
-z.za_wydawnictwa,
-w.wy_nazwa,
-w.wy_wydawnictwo_id,
-w.wy_miasto,
-z.za_rok_wydania,
-z.za_opis_fizyczny_ksiazki,
-Z.ZA_ADNOTACJE,
-Z.ZA_OPIS_IMPREZY,
-Z.ZA_ORGANIZATOR
-FROM IBL_OWNER.pbl_zapisy z
-LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
-left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
-left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
-left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
-LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
-LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
-LEFT JOIN IBL_OWNER.pbl_osoby_do_indeksu oi on oi.odi_za_zapis_id = z.za_zapis_id
-WHERE z.za_adnotacje like '%Prus%'
-AND oi.odi_nazwisko like 'Prus'
-AND oi.odi_imie like 'Bolesław'
-'''
+# query_records_with_Prus_in_note = f'''
+# SELECT z.za_zapis_id, 
+# z.za_za_zapis_id AS zapis_nadrzedny, 
+# z.za_type, 
+# z.za_tytul, 
+# tw.tw_imie, 
+# tw.tw_nazwisko,
+# tw.tw_tworca_id, 
+# d.dz_nazwa, 
+# t.am_imie, 
+# t.am_nazwisko, 
+# t.am_autor_id,
+# zr.zr_tytul,
+# zr.zr_zrodlo_id,
+# z.za_zrodlo_rok, 
+# z.za_zrodlo_nr, 
+# z.za_zrodlo_str,
+# z.za_seria_wydawnicza,  
+# z.za_opis_wspoltworcow,
+# z.za_wydawnictwa,
+# w.wy_nazwa,
+# w.wy_wydawnictwo_id,
+# w.wy_miasto,
+# z.za_rok_wydania,
+# z.za_opis_fizyczny_ksiazki,
+# Z.ZA_ADNOTACJE,
+# Z.ZA_OPIS_IMPREZY,
+# Z.ZA_ORGANIZATOR
+# FROM IBL_OWNER.pbl_zapisy z
+# LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
+# LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
+# left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
+# left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
+# left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
+# LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
+# LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
+# LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
+# LEFT JOIN IBL_OWNER.pbl_osoby_do_indeksu oi on oi.odi_za_zapis_id = z.za_zapis_id
+# WHERE z.za_adnotacje like '%Prus%'
+# AND oi.odi_nazwisko like 'Prus'
+# AND oi.odi_imie like 'Bolesław'
+# '''
 
-# cursor.execute(query_records_with_Prus_in_note )
+# # cursor.execute(query_records_with_Prus_in_note )
 
-df_ora_Prus_in_note = pd.read_sql(query_records_with_Prus_in_note, con=connection) #372 rekordów
-id_records_attached_Prus_in_note = df_ora_Prus_in_note['ZA_ZAPIS_ID'].tolist()
+# df_ora_Prus_in_note = pd.read_sql(query_records_with_Prus_in_note, con=connection) #372 rekordów
+# id_records_attached_Prus_in_note = df_ora_Prus_in_note['ZA_ZAPIS_ID'].tolist()
 
-#%% Prus wspomniany w polu adnotacja (zastanowic sie czy to jest potrzebne) + Prus w polu Nazwisko w tabeli PBL_OSOBY_DO_INDEKSU - rekordy podpiete pod te rekordy
+# #%% Prus wspomniany w polu adnotacja (zastanowic sie czy to jest potrzebne) + Prus w polu Nazwisko w tabeli PBL_OSOBY_DO_INDEKSU - rekordy podpiete pod te rekordy
 
-id_records_attached_Prus_in_note_str = ', '.join(map(str, id_records_attached_Prus_in_note))
+# id_records_attached_Prus_in_note_str = ', '.join(map(str, id_records_attached_Prus_in_note))
 
-query_records_attached_Prus_in_note_one_level_below = f'''
-SELECT z.za_zapis_id, 
-z.za_za_zapis_id AS zapis_nadrzedny, 
-z.za_type, 
-z.za_tytul, 
-tw.tw_imie, 
-tw.tw_nazwisko,
-tw.tw_tworca_id, 
-d.dz_nazwa, 
-t.am_imie, 
-t.am_nazwisko, 
-t.am_autor_id,
-zr.zr_tytul,
-zr.zr_zrodlo_id,
-z.za_zrodlo_rok, 
-z.za_zrodlo_nr, 
-z.za_zrodlo_str,
-z.za_seria_wydawnicza,  
-z.za_opis_wspoltworcow,
-z.za_wydawnictwa,
-w.wy_nazwa,
-w.wy_wydawnictwo_id,
-w.wy_miasto,
-z.za_rok_wydania,
-z.za_opis_fizyczny_ksiazki,
-Z.ZA_ADNOTACJE,
-Z.ZA_OPIS_IMPREZY,
-Z.ZA_ORGANIZATOR
-FROM IBL_OWNER.pbl_zapisy z
-LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
-left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
-left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
-left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
-LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
-LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
-LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
-WHERE z.za_za_zapis_id IN ({id_records_attached_Prus_in_note_str})
-'''
-
-
-df_ora_Prus_in_note_one_level_below = pd.read_sql(query_records_attached_Prus_in_note_one_level_below, con=connection) #384 rekordów
-
-df_merged_Prus_in_note = pd.concat([df_ora_Prus_in_note, df_ora_Prus_in_note_one_level_below], ignore_index=True).drop_duplicates() #607 rekordów
+# query_records_attached_Prus_in_note_one_level_below = f'''
+# SELECT z.za_zapis_id, 
+# z.za_za_zapis_id AS zapis_nadrzedny, 
+# z.za_type, 
+# z.za_tytul, 
+# tw.tw_imie, 
+# tw.tw_nazwisko,
+# tw.tw_tworca_id, 
+# d.dz_nazwa, 
+# t.am_imie, 
+# t.am_nazwisko, 
+# t.am_autor_id,
+# zr.zr_tytul,
+# zr.zr_zrodlo_id,
+# z.za_zrodlo_rok, 
+# z.za_zrodlo_nr, 
+# z.za_zrodlo_str,
+# z.za_seria_wydawnicza,  
+# z.za_opis_wspoltworcow,
+# z.za_wydawnictwa,
+# w.wy_nazwa,
+# w.wy_wydawnictwo_id,
+# w.wy_miasto,
+# z.za_rok_wydania,
+# z.za_opis_fizyczny_ksiazki,
+# Z.ZA_ADNOTACJE,
+# Z.ZA_OPIS_IMPREZY,
+# Z.ZA_ORGANIZATOR
+# FROM IBL_OWNER.pbl_zapisy z
+# LEFT JOIN IBL_OWNER.pbl_zapisy_autorzy a on z.za_zapis_id = a.zaam_za_zapis_id
+# LEFT JOIN IBL_OWNER.pbl_autorzy t on a.zaam_am_autor_id = t.am_autor_id
+# left join IBL_OWNER.pbl_zapisy_tworcy ztw on ztw.zatw_za_zapis_id = z.za_zapis_id
+# left join IBL_OWNER.pbl_zrodla zr on z.za_zr_zrodlo_id = zr.zr_zrodlo_id
+# left join IBL_OWNER.pbl_tworcy tw on tw.tw_tworca_id = ztw.zatw_tw_tworca_id
+# LEFT JOIN IBL_OWNER.pbl_dzialy d on z.za_dz_dzial1_id = d.dz_dzial_id  
+# LEFT JOIN IBL_OWNER.pbl_zapisy_wydawnictwa zwyd on zwyd.zawy_za_zapis_id = z.za_zapis_id
+# LEFT JOIN IBL_OWNER.pbl_wydawnictwa w on w.wy_wydawnictwo_id = zwyd.zawy_wy_wydawnictwo_id
+# WHERE z.za_za_zapis_id IN ({id_records_attached_Prus_in_note_str})
+# '''
 
 
+# df_ora_Prus_in_note_one_level_below = pd.read_sql(query_records_attached_Prus_in_note_one_level_below, con=connection) #384 rekordów
 
-#%%Połączenie wszystkich trzech DF w jeden (1. DF z rekordami podpietymi pod Lalkę, 2. DF z rekordami podpietymi pod Prusa jako tworce i autora, 3. DF z rekordami w ktorych w osobach do indeksu i adnotacji pojawia sie "Prus") 
-
- 
-df_final = pd.concat([df_full_list, df_Prus_records_all_clean, df_merged_Prus_in_note], ignore_index=True).drop_duplicates() #1411 rekordy
+# df_merged_Prus_in_note = pd.concat([df_ora_Prus_in_note, df_ora_Prus_in_note_one_level_below], ignore_index=True).drop_duplicates() #607 rekordów
 
 
-#Dodać jeszcze Filmy i Seriale!
 
 #%%
 #Dowalic wiecej danych do grafu i przetestowac. 
 
 
-
+columns_df = df_clean.columns
 
 
 
@@ -287,46 +296,52 @@ def row_to_dict(row):
         return val
 
     return {
-        "za_zapis_id": clean_val(row['ZA_ZAPIS_ID']),
-        "zapis_nadrzedny": clean_val(row['ZAPIS_NADRZEDNY']),
-        "za_type": clean_val(row['ZA_TYPE']),
-        "za_tytul": clean_val(row['ZA_TYTUL']),
-        "tworca": {
-            "imie": clean_val(row['TW_IMIE']),
-            "nazwisko": clean_val(row['TW_NAZWISKO']),
-            "identyfikator": clean_val(row['TW_TWORCA_ID'])
+        "ZAPIS_ID": clean_val(row['ZA_ZAPIS_ID']),
+        "ZAPIS_NADRZĘDNY_ID": clean_val(row['ZAPIS_NADRZEDNY']),
+        "TYP": clean_val(row['ZA_TYPE']),
+        "TYTUŁ": clean_val(row['ZA_TYTUL']),
+        "TWÓRCA": {
+            "IMIĘ": clean_val(row['TW_IMIE']),
+            "NAZWISKO": clean_val(row['TW_NAZWISKO']),
+            "ID": clean_val(row['TW_TWORCA_ID'])
         },
-        "autor": {
-            "imie": clean_val(row['AM_IMIE']),
-            "nazwisko": clean_val(row['AM_NAZWISKO']),
-            "identyfikator": clean_val(row['AM_AUTOR_ID'])
+        "AUTOR": {
+            "IMIĘ": clean_val(row['AM_IMIE']),
+            "NAZWISKO": clean_val(row['AM_NAZWISKO']),
+            "ID": clean_val(row['AM_AUTOR_ID'])
         },
-        "dzial": clean_val(row['DZ_NAZWA']),
-        "zrodlo": {
-            "tytul": clean_val(row['ZR_TYTUL']),
-            "rok": int(clean_val(row['ZA_ZRODLO_ROK'])) if clean_val(row['ZA_ZRODLO_ROK']) is not None else None,
-            "numer": clean_val(row['ZA_ZRODLO_NR']),
-            "strony": clean_val(row['ZA_ZRODLO_STR']),
-            "seria_wydawnicza": clean_val(row['ZA_SERIA_WYDAWNICZA']),
-            "miejsce_wydania": clean_val(row['WY_MIASTO']),
-            "wydawnictwo": clean_val(row['ZA_WYDAWNICTWA']),
-            "rok_wydania": int(clean_val(row['ZA_ROK_WYDANIA'])) if clean_val(row['ZA_ROK_WYDANIA']) is not None else None,
-            "opis_fizyczny": clean_val(row['ZA_OPIS_FIZYCZNY_KSIAZKI']),
+        "DZIAŁ_PBL": clean_val(row['DZ_NAZWA']),
+        "TYTUŁ": clean_val(row['ZA_TYTUL']),
+        "ADNOTACJE": clean_val(row['ZA_ADNOTACJE']),
+        
+        "ŹRÓDŁO_CZASOPISMO": {
+            "TYTUŁ_CZASOPISMA": clean_val(row['ZR_TYTUL']),
+            "ROK": int(clean_val(row['ZA_ZRODLO_ROK'])) if clean_val(row['ZA_ZRODLO_ROK']) is not None else None,
+            "NUMER": clean_val(row['ZA_ZRODLO_NR']),
+            "STRONY": clean_val(row['ZA_ZRODLO_STR']),
         },
-        "opis_wspoltworcow": clean_val(row['ZA_OPIS_WSPOLTWORCOW']),
-        "adnotacje": clean_val(row['ZA_ADNOTACJE']),
-        "opis_imprezy": clean_val(row['ZA_OPIS_IMPREZY']),
-        "organizator": clean_val(row['ZA_ORGANIZATOR'])
+        "ŹRÓDŁO_KSIĄŻKA": {
+            "SERIA_WYDAWNICZA": clean_val(row['ZA_SERIA_WYDAWNICZA']),
+            "MIEJSCE_WYDANIA": clean_val(row['WY_MIASTO']),
+            "WYDAWNICTWO": clean_val(row['ZA_WYDAWNICTWA']),
+            "ROK_WYDANIA": int(clean_val(row['ZA_ROK_WYDANIA'])) if clean_val(row['ZA_ROK_WYDANIA']) is not None else None,
+            "OPIS_FIZYCZNY": clean_val(row['ZA_OPIS_FIZYCZNY_KSIAZKI']),
+            "OPIS_WSPÓŁTWÓRCÓW": clean_val(row['ZA_OPIS_WSPOLTWORCOW']),
+        },
+        
+        "IMPREZA": {
+            "OPIS_IMPREZY": clean_val(row['ZA_OPIS_IMPREZY']),
+            "ORGANIZATOR": clean_val(row['ZA_ORGANIZATOR'])
+        },
+        
     }
 
 # Załaduj cały DataFrame (zakładam, że masz df)
 
-json_list = [row_to_dict(row) for _, row in df_full_list.iterrows()]
+json_list = [row_to_dict(row) for _, row in df_clean.iterrows()]
 
 
 # json_list = [row_to_dict(row) for _, row in df_final.iterrows()]
-
-
 
 
 
@@ -340,13 +355,12 @@ with open(f"data\Prus_for_KG.json", "w", encoding="utf-8") as f:
 
 #Co jeszcze przydaloby sie z PBL o Lalce: 
 
-# Film z podpiętymi rekordami
-# Serial z podpiętymi rekordami
+
 # Audycje radiowe (jest kilka), ale bez jakichś podpiętych rekordów
 # Lalka w teatrze.
 
 
-#WYJAC FILM I SERIAL - teraz ich nie ma! 
+
 #Brakuje ID przy kazdym autorze 
 #Brakuje ID przy kazdym źródle
 #Generalnie wszystko co ma ID w bazie powinno miec ID w JSONie
