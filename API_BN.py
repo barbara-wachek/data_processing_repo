@@ -299,7 +299,7 @@ final_df['Rok'] = pd.to_numeric(final_df['Rok'], errors='coerce')
 df_filtered = final_df[(final_df['Rok'] >= 1925) | (final_df['Rok'] == 0)]
 
 df_filtered = df_filtered.sort_values(by='Rok', ascending=True)
-df_filtered = df_filtered.drop_duplicate()
+df_filtered = df_filtered.drop_duplicates()
 
 
 
@@ -308,7 +308,7 @@ df_filtered = df_filtered.drop_duplicate()
 
 
 #uwzględnić tylko te ktore w jezyk maja polski
-df_filtered.to_excel('data/KP_Reymont_podmiotowa_2025-04-22.xlsx', index=False)  
+df_filtered.to_excel('data/KP_Reymont_podmiotowa_2025-10-24.xlsx', index=False)  
 
 
 
@@ -364,7 +364,7 @@ df_filtered = final_df[(final_df['Rok'] >= 1925) | (final_df['Rok'] == 0)]
 
 df_filtered = df_filtered.sort_values(by='Rok', ascending=True)
 
-df_filtered.to_excel('data/KP_Reymont_przedmiotowa_2025-04-22.xlsx', index=False)  
+df_filtered.to_excel('data/KP_Reymont_przedmiotowa_2025-10-24.xlsx', index=False)  
 
 
 
