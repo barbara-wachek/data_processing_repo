@@ -20,7 +20,7 @@
 #z pliku mrk zrobić tabelę - wgrać do Pythona mrk i DataFrame zrobić
 
 
-#%% ROZWIĄZANIE
+#%% import
 import requests
 import pandas as pd
 import re
@@ -479,15 +479,72 @@ df_combined_2000.to_excel('data/NPRH2025_czasopisma_dla_KP_2025-06-23.xlsx', ind
 #     marc_series = element['marc']
 #     all_marc_series.append(marc_series)
 
+
+
+#%%
+
+# 2. Prof. poprosi o przygotowanie kolejnej kwerendy, ale jest dość szczegółowa i na podstawie PBL nie da się tego zrobić, więc może uda Ci się zrobić to na podstawie danych BN (próbowałam tego poszukać "na piechotę" w katalogu BN, ale mi się nie udało).
+# Chodzi o sprawdzenie książek literackich - nowych wydań i książek nowych o tematyce II wojny, gdzie jest komizm.
+# Myślę, że takie książki powinny mieć Formę i typ książka, w Gatunku gatunki literackie, w Temacie komizm, i tematy związane z II wojną światową (np. zakres dat, Powstanie warszawskie (1944), Powstanie w getcie warszawskim (1943) itp.)
           
 
-     
+
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params = {'kind': 'książka', 'subject': 'komizm', 'limit':100}).json()
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+# all_marc_series = []
+# for element in bibs: 
+#     marc_series = element['marc']
+#     all_marc_series.append(marc_series)
+    
+all_records = []
+for element in bibs: 
+    all_records.append(element)
+
+
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
+    dictionary_of_records = {'Tytuł': element['title'],
+                             'Rok publikacji': element['publicationYear'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Autor': element['author'], 
+                             'Czas': element['timePeriodOfCreation'],
+                             'Tematy': element['subject']
+                             }
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+
+#Znajdź rekordy, które mają takie słowa w kolumnie subject: 1939-1945, wojna
+
+df = final_df[final_df['Tematy'].str.contains('olocaust', case=False, na=False)]
+
+
+final_df.to_excel('data/SPUBi_Tomasz_Mizerkiewicz_2025-12-18.xlsx', index=False)  
 
 
 
+genre_list = ['Powieść', 'Satyra', 'Pamiętnik', 'literack', 'dramat', 'komedia', 'romans', 'opera', 'fantastyka', 'anegdoty', 'opowiadania', 'nowele', 'fraszki',
+              'misteria', 'wiersz', 'antologia', 'sztuka', 'bajk', 'anegdot', 'przysłowia', 'parodia', 'komiks', 'szkice', 'poezja', 'felieton']
+
+genre_pattern = '|'.join(map(re.escape, genre_list))
+
+# only_literature_df = final_df[final_df['Gatunki'].str.contains(genre_list, case=False, na=False)]
 
 
-
-
-
+only_literature_df = final_df[
+    final_df['Gatunek'].str.contains(genre_pattern, case=False, na=False)
+]
 
