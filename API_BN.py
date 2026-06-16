@@ -548,3 +548,259 @@ only_literature_df = final_df[
     final_df['Gatunek'].str.contains(genre_pattern, case=False, na=False)
 ]
 
+
+
+#%%
+#2026-05-21
+''' 
+Wydobycie z bazy BN listy z nowymi czasopismami, które zaczęły ukazywać się w 2023, 2024, 2025. 
+Chodzi o pisma, które są czasopismami literaturoznawczymi, literackimi, teatrologicznymi, filmoznawczymi, społeczno-kulturalnymi.
+Nie potrzebuję tego na jutro, ale jakbyś miała czas w ciągu tygodnia lub 2 to byłoby super.
+'''
+
+
+params = [
+    ('genre', 'Czasopisma polskie'),
+    ('genre', 'Czasopismo polskie'),
+    ('kind', 'czasopismo'),
+    ('limit', 100)
+]
+
+# params = [
+#     ('genre', '( czasopismo | polskie | literatura | film | teatr | kultura )'),
+#     ('kind', 'czasopismo'),
+#     #('timePeriodofCreation', '(2025 | 2024 | 2023) '),
+#     #('publicationYear', '(2025 | 2024 |2023)')
+#     ('limit', 100),
+#     ('boolean', 'true'),
+# ]
+
+data = requests.get('https://data.bn.org.pl/api/networks/bibs.json?', params=params).json()
+
+
+bibs = data['bibs']
+while data['nextPage'] != '':
+    data = requests.get(data['nextPage']).json()
+    bibs = bibs + data['bibs']
+
+all_records = []
+for element in bibs: 
+    all_records.append(element)
+
+
+all_records_list = []
+for element in all_records:
+    # element = all_records[2]
+    dictionary_of_records = {'Tytuł': element['title'],
+                             'Wydawca': element['publisher'],
+                             'Miejsce wydania': element['placeOfPublication'],
+                             'Język': element['language'], 
+                             'Typ': element['kind'], 
+                             'Gatunek': element['genre'], 
+                             'Forma': element['formOfWork'], 
+                             'Autor': element['author'], 
+                             'Czas': element['timePeriodOfCreation']
+                             }
+    
+    all_records_list.append(dictionary_of_records)
+
+
+final_df = pd.DataFrame(all_records_list)
+
+
+# --- ZAPIS DO XLSX ---
+os.makedirs("data", exist_ok=True)
+
+output_path = os.path.join("data", "czasopisma_2023-2025.xlsx")
+final_df.to_excel(output_path, index=False)
+
+
+
+#%% PAULINA 2026-06-11
+
+"""
+Kwerenda BN: poetyckie książki dla dzieci (XXI wiek)
+======================================================
+Strategia: API BN nie filtruje po genre/subject na poziomie zapytania —
+zwraca rekordy sekwencyjnie. Dlatego pobieramy wszystkie książki (kind=książka)
+i filtrujemy lokalnie po:
+  - genre lub subject zawiera "Poezja dziecięca polska" (hasło używane w tym rekordzie)
+  - rok wydania >= 2000
+Dodatkowo liczymy liczbę tytułów per autor, żeby wyłapać jedynaków.
+"""
+ 
+import requests
+import pandas as pd
+import os
+import re
+ 
+ 
+BASE_URL = "https://data.bn.org.pl/api/networks/bibs.json"
+ 
+# ---------------------------------------------------------------------------
+# 1. Pobieranie — tylko książki po polsku, żeby zmniejszyć zbiór
+# ---------------------------------------------------------------------------
+params = [
+    ("kind", "książka"),
+    ("language", "polski"),
+    ("limit", 100),
+    ("genre", "poezja")
+]
+ 
+print("Pobieranie danych z BN (może potrwać kilkanaście minut)...")
+data = requests.get(BASE_URL, params=params).json()
+bibs = data.get("bibs", [])
+ 
+i = 0
+while data.get("nextPage", "") != "":
+    data = requests.get(data["nextPage"]).json()
+    bibs += data.get("bibs", [])
+    i += 1
+    if i % 100 == 0:
+        print(f"  Pobrano {len(bibs)} rekordów...")
+ 
+print(f"Łącznie rekordów: {len(bibs)}")
+ 
+# ---------------------------------------------------------------------------
+# 2. Budowanie DataFrame
+# ---------------------------------------------------------------------------
+records = []
+for el in bibs:
+    records.append({
+        "Tytuł":           el.get("title", ""),
+        "Autor":           el.get("author", ""),
+        "Wydawca":         el.get("publisher", ""),
+        "Miejsce wydania": el.get("placeOfPublication", ""),
+        "Gatunek":         el.get("genre", ""),
+        "Forma":           el.get("formOfWork", ""),
+        "Temat":           el.get("subject", ""),
+        "Odbiorca":        el.get("audienceGroup", ""),
+        "Czas":            el.get("timePeriodOfCreation", ""),
+        "Rok wydania":     el.get("publicationYear", ""),
+    })
+ 
+df = pd.DataFrame(records).drop_duplicates()
+print(f"Po deduplikacji: {len(df)} rekordów")
+ 
+# ---------------------------------------------------------------------------
+# 3. Filtrowanie: "Poezja dziecięca polska" w dowolnym polu tekstowym
+#    (genre, subject, audienceGroup, formOfWork)
+# ---------------------------------------------------------------------------
+HASLA = ["dziecię", "dzieci"]
+ 
+def zawiera_haslo(tekst, hasla):
+    if not isinstance(tekst, str):
+        return False
+    t = tekst.lower()
+    return any(h.lower() in t for h in hasla)
+ 
+maska = (
+    df["Gatunek"].apply(lambda x: zawiera_haslo(x, HASLA)) |
+    df["Temat"].apply(lambda x: zawiera_haslo(x, HASLA)) |
+    df["Forma"].apply(lambda x: zawiera_haslo(x, HASLA)) |
+    df["Odbiorca"].apply(lambda x: zawiera_haslo(x, HASLA))
+)
+ 
+df_dzieci = df[maska].copy()
+print(f"Trafień 'poezja dziecięca': {len(df_dzieci)}")
+ 
+# ---------------------------------------------------------------------------
+# 4. Filtr: rok wydania >= 2000
+# ---------------------------------------------------------------------------
+df_dzieci["Rok_num"] = pd.to_numeric(df_dzieci["Rok wydania"], errors="coerce")
+df_XXI = df_dzieci[(df_dzieci["Rok_num"] >= 2000) | (df_dzieci["Rok_num"].isna())].copy()
+print(f"Po filtrze roku (>= 2000): {len(df_XXI)}")
+ 
+# ---------------------------------------------------------------------------
+# 5. Zliczanie tytułów per autor (w całym zbiorze poezji dziecięcej, nie tylko XXI w.)
+# ---------------------------------------------------------------------------
+
+def wytnij_pierwszego_autora(tekst):
+    if not isinstance(tekst, str):
+        return ""
+    # szuka wzorca: Słowo, Słowo opcjonalnie (daty)
+    m = re.match(r"^([A-ZŁŚÓŻŹĆŃ][a-złśóżźćń\-]+,\s+[A-ZŁŚÓŻŹĆŃ][a-złśóżźćńa-z\-\.]+(?:\s+\([^\)]+\))?)", tekst)
+    if m:
+        return m.group(1).strip()
+    return tekst.split()[0] if tekst else ""
+
+df_dzieci["Autor_główny"] = df_dzieci["Autor"].apply(wytnij_pierwszego_autora)
+
+
+# ---------------------------------------------------------------------------
+# 6. Zliczanie tytułów per autor (w całym zbiorze poezji dziecięcej, nie tylko XXI w.)
+# ---------------------------------------------------------------------------
+liczba = (
+    df_dzieci.groupby("Autor_główny")["Tytuł"]
+    .count()
+    .reset_index()
+    .rename(columns={"Tytuł": "Liczba_tytułów_dla_dzieci_w_BN"})
+)
+ 
+df_wynik = df_XXI.merge(liczba, on="Autor_główny", how="left")
+df_wynik["Jedyny_tytuł?"] = df_wynik["Liczba_tytułów_dla_dzieci_w_BN"] == 1
+df_wynik = df_wynik.sort_values(["Jedyny_tytuł?", "Autor_główny"], ascending=[False, True])
+ 
+# ---------------------------------------------------------------------------
+# 6. Zapis
+# ---------------------------------------------------------------------------
+os.makedirs("data", exist_ok=True)
+output = "data/BN_poezja_dzieci_XXIw.xlsx"
+ 
+with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    kolumny = ["Tytuł", "Autor", "Rok wydania", "Czas", "Wydawca",
+               "Miejsce wydania", "Gatunek", "Temat", "Forma", "Odbiorca",
+               "Liczba_tytułów_dla_dzieci_w_BN", "Jedyny_tytuł?"]
+    df_wynik[kolumny].to_excel(writer, sheet_name="Poezja_dzieci_XXI", index=False)
+    liczba.sort_values("Liczba_tytułów_dla_dzieci_w_BN").to_excel(
+        writer, sheet_name="Autorzy_liczba", index=False)
+ 
+print(f"\nGotowe → {output}")
+print(f"\nKandydaci z 1 tytułem dla dzieci ({df_wynik['Jedyny_tytuł?'].sum()} pozycji):")
+print(df_wynik[df_wynik["Jedyny_tytuł?"] == True][
+    ["Tytuł", "Autor", "Rok wydania", "Wydawca"]
+].to_string(index=False))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
